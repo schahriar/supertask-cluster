@@ -11,14 +11,15 @@ var SuperTask = require('supertask');
 // No Operation function
 function noop() { return null; }
 
-var SuperTaskCluster = function STC_INIT(SuperTaskInstance) {
-    this._st = SuperTaskInstance || new SuperTask();
+var SuperTaskCluster = function STC_INIT() {
     this._cluster = {};
 };
 
 SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     var cores = os.cpus().length;
     if (cluster.isMaster) {
+        // Create new master Supertask instance
+        this._st = new SuperTask();
         // Fork workers.
         for (var i = 0; i < cores; i++) {
             var fork = cluster.fork();
