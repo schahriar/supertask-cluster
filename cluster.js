@@ -11,9 +11,7 @@ var SuperTask = require('supertask');
 // No Operation function
 function noop() { return null; }
 
-var SuperTaskCluster = function STC_INIT() {
-    this._st = null;
-};
+var SuperTaskCluster = SuperTask;
 
 SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     var cores = os.cpus().length;
@@ -27,8 +25,6 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     for (var i = 0; i < cores; i++) {
         cluster.fork();
     }
-    // Create new master Supertask instance
-    this._st = new SuperTask();
     
     // Listen
     Object.keys(cluster.workers).forEach(function(id) {
