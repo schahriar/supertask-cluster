@@ -4,7 +4,9 @@
   "description": "A cluster superset of Supertask",
   "main": "cluster.js",
   "scripts": {
-    "test": "mocha ./tests/main.js"
+    "test": "mocha ./tests/main.js | mocha coverage.js -R mocha-lcov-reporter > lcov.info",
+    "posttest": "codeclimate-test-reporter < lcov.info",
+    "localtest": "mocha ./tests/main.js"
   },
   "repository": {
     "type": "git",
@@ -22,5 +24,12 @@
   "bugs": {
     "url": "https://github.com/schahriar/supertask-cluster/issues"
   },
-  "homepage": "https://github.com/schahriar/supertask-cluster#readme"
+  "homepage": "https://github.com/schahriar/supertask-cluster#readme",
+  "devDependencies": {
+    "blanket": "^1.2.1",
+    "chai": "^3.4.1",
+    "codeclimate-test-reporter": "^0.1.1",
+    "mocha": "^2.3.4",
+    "mocha-lcov-reporter": "^1.0.0"
+  }
 }
