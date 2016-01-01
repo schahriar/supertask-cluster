@@ -33,6 +33,6 @@
     "mocha-lcov-reporter": "^1.0.0"
   },
   "dependencies": {
-    "supertask": "^1.0.0"
+    "supertask": "^1.1.0"
   }
 }
