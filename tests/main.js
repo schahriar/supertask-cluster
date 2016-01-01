@@ -11,6 +11,6 @@ describe("Init Test Suite", function() {
     });
     it('should deploy a worker per CPU core', function() {
         cluster.deploy();
-        expect(cluster.totalWorkers()).to.be.gte(4);
+        expect(cluster.totalWorkers()).to.be.gte(require('os').cpus().length);
     });
 });
