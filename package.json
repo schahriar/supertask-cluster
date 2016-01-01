@@ -1,0 +1,26 @@
+{
+  "name": "supertask-cluster",
+  "version": "1.0.0",
+  "description": "A cluster superset of Supertask",
+  "main": "cluster.js",
+  "scripts": {
+    "test": "mocha ./tests/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/schahriar/supertask-cluster.git"
+  },
+  "keywords": [
+    "cluster",
+    "task",
+    "queue",
+    "supertask",
+    "parallel"
+  ],
+  "author": "Schahriar SaffarShargh <info@schahriar.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/schahriar/supertask-cluster/issues"
+  },
+  "homepage": "https://github.com/schahriar/supertask-cluster#readme"
+}
