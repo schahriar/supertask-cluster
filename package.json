@@ -31,5 +31,8 @@
     "codeclimate-test-reporter": "^0.1.1",
     "mocha": "^2.3.4",
     "mocha-lcov-reporter": "^1.0.0"
+  },
+  "dependencies": {
+    "supertask": "^1.0.0"
   }
 }
