@@ -38,6 +38,15 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     });
 };
 
+SuperTaskCluster.prototype._STC_BROADCAST = function STC_BROADCAST(message) {
+    Object.keys(cluster.workers).forEach(function(id) {
+        cluster.workers[id].send(message);
+    });
+};
+
+SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message) {
+    cluster.workers[id].send(message);
+};
 SuperTaskCluster.prototype.getWorkers = function STC_GET_WORKERS() {
     return cluster.workers;
 };
