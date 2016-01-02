@@ -116,9 +116,24 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
     // Create new ticket for message
     message.ticket = shortid.generate();
     cluster.workers[id].send(message);
-    this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, function(response) {
+    // Response timeout
+    var STC_SEND_TIMEOUT = setTimeout(STC_SEND_CALLBACK, (this.CLUSTER_TIMEOUT || 30000)*1);
+    var STC_SEND_ISDONE = false;
+    function STC_SEND_CALLBACK(response) {
+        // TimedOut
+        if(STC_SEND_ISDONE === true) return;
+        
+        STC_SEND_ISDONE = true;
+        clearTimeout(STC_SEND_TIMEOUT);
+        
+        if(!response) response = {
+            error: "Failed to process. TimedOut!",
+            success: false
+        };
+        
         callback(response.error, response.success, response);
-    });
+    }
+    this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
 };
 
 // Override addShared implementation
