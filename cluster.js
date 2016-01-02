@@ -14,6 +14,7 @@ var async = require('async');
 function noop() { return null; }
 
 var SuperTaskCluster = SuperTask;
+var ClusterLoad = {};
 
 SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     var _this = this;
@@ -29,14 +30,18 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
         cluster.fork();
     }
     
-    // Listen
+    // Listen & Create ClusterLoad Maps
     Object.keys(cluster.workers).forEach(function(id) {
+        ClusterLoad[id] = new Map();
         cluster.workers[id].on('message', function(response) {
             _this._STC_MESSAGE_HANDLER(id, response);
         });
     });
 
     cluster.on('exit', function(worker, code, signal) {
+        // Clear Map & Set to null
+        if(ClusterLoad[id]) ClusterLoad[id].clear();
+        ClusterLoad[id] = null;
         console.log('worker ' + worker.process.pid + ' died');
     });
 };
@@ -45,6 +50,15 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
     var args = Array.prototype.slice.call(arguments);
     var name = args.shift(), context = args.shift(), callback = args.pop();
     // Run task on a free Worker
+    var MIN_LOAD = { v: Infinity, i: 'master' };
+    // Find the best worker
+    Object.keys(ClusterLoad).forEach(function(id) {
+        if(!ClusterLoad[id]) return;
+        if(ClusterLoad[id].size <= MIN_LOAD.v) {
+            MIN_LOAD.v = ClusterLoad[id].size;
+            MIN_LOAD.i = id;
+        }
+    });
 };
 
 SuperTaskCluster.prototype._STC_MESSAGE_HANDLER = function STC_MESSAGE_HANDLER(id, response) {
