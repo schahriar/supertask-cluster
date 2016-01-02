@@ -73,7 +73,7 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
     message.ticket = shortid.generate();
     cluster.workers[id].send(message);
     this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, function(response) {
-        callback(response.error, response.success);
+        callback(response.error, response.success, response);
     });
 };
 
