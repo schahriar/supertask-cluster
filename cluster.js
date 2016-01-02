@@ -66,6 +66,10 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
     // Find the best worker
     Object.keys(ClusterLoad).forEach(function(id) {
         if(!ClusterLoad[id]) return;
+        /* Prioritizing the last worker
+        by using <= we set the priority to the
+        last worker.
+        */
         if(ClusterLoad[id].size <= MIN_LOAD.v) {
             MIN_LOAD.v = ClusterLoad[id].size;
             MIN_LOAD.i = id;
