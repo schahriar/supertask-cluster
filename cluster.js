@@ -69,6 +69,8 @@ SuperTaskCluster.prototype._STC_BROADCAST = function STC_BROADCAST(message, call
 };
 
 SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) {
+    // Create new ticket for message
+    message.ticket = shortid.generate();
     cluster.workers[id].send(message);
     this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, function(response) {
         callback(response.error, response.success);
@@ -90,7 +92,6 @@ SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, cal
             // Distribute task across cluster
             _this._STC_BROADCAST({
                 type: "task",
-                ticket: shortid.generate(),
                 name: task.model.name,
                 source: task.model.source,
                 isModule: task.model.isModule,
