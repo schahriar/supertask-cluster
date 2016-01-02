@@ -13,4 +13,14 @@ describe("Init Test Suite", function() {
         cluster.deploy();
         expect(cluster.totalWorkers()).to.be.gte(require('os').cpus().length);
     });
+    it('should add & distribute shared tasks', function(done) {
+        cluster.addShared('test', 'module.exports = function(callback){ callback(null, 2); }', function(error, task) {
+            if(error) throw error;
+            task.distribute(function(error, success) {
+                if(error) throw error;
+                expect(success[0]).to.be.gt(0);
+                done();
+            });
+        });
+    });
 });
