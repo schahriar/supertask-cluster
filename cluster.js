@@ -16,6 +16,14 @@ function noop() { return null; }
 var SuperTaskCluster = SuperTask;
 var ClusterLoad = {};
 
+/** AUTHOR'S NOTE **
+The cluster's children can be called as
+Worker/(child)process/thread/core/etc. depending
+on your perspective on the underlying implementation
+but for the sake of consistency they will be referred
+to as Worker(s) in this module.
+*/
+
 SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     var _this = this;
     var cores = os.cpus().length;
