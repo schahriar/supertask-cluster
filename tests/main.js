@@ -23,4 +23,11 @@ describe("Init Test Suite", function() {
             });
         });
     });
+    it('should run task on cluster', function(done) {
+        cluster.do('test', function(error, r) {
+            if(error) throw error;
+            expect(r).to.be.equal(2);
+            done();
+        });
+    });
 });
