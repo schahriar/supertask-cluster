@@ -59,6 +59,20 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
             MIN_LOAD.i = id;
         }
     });
+    if((MIN_LOAD.i === 'master') || (!cluster.workers[MIN_LOAD.i])) {
+        // Apply locally
+        this.get(name).model.func.apply(context, [callback]);
+    }else{
+        // Send to Cluster Worker
+        this._STC_SEND(MIN_LOAD.i, {
+            type: "do",
+            name: name,
+            args: args
+        }, function(error, success, response) {
+            if(error || !success) return callback(error || new Error("Unknown error occurred"));
+            callback.apply(null, response.args || []);
+        });
+    }
 };
 
 SuperTaskCluster.prototype._STC_MESSAGE_HANDLER = function STC_MESSAGE_HANDLER(id, response) {
