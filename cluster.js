@@ -35,6 +35,10 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     });
     // Fork workers.
     for (var i = 0; i < cores; i++) {
+        // Give the Worker an id
+        // Note that NODE_UNIQUE_ID doesn't seem to work with setupMaster
+        // as env is not passed down
+        cluster.setupMaster({args: [i]});
         cluster.fork();
     }
     
