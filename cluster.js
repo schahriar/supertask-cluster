@@ -85,7 +85,7 @@ SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, cal
         source = 'module.exports = ' + source.toString();
     }
     var _this = this;
-    this._addTask(name, source, this._STC_HANDLER, SuperTask.ST_SHARED_TYPE, function(error, task) {
+    this._addTask(name, source, this._STC_HANDLER.bind(this), SuperTask.ST_SHARED_TYPE, function(error, task) {
         if(error) return callback(error);
         // Extend Task Model
         task.distribute = function STC__TASK_MODEL_DISTRIBUTE(callback) {
