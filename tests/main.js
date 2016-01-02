@@ -30,4 +30,18 @@ describe("Init Test Suite", function() {
             done();
         });
     });
+    it('should run tasks on the cluster with arguments', function(done) {
+        cluster.addShared('multiply', 'module.exports = function m(a, b, callback){ callback(null, a*b); }', function(error, task) {
+            if(error) throw error;
+            task.distribute(function(error, success) {
+                if(error) throw error;
+                expect(success[0]).to.be.gt(0);
+                cluster.do('multiply', 4, 8, function(error, r) {
+                    if(error) throw error;
+                    expect(r).to.be.equal(4*8);
+                    done();
+                });
+            });
+        });
+    });
 });
