@@ -29,6 +29,7 @@
   "devDependencies": {
     "blanket": "^1.2.1",
     "chai": "^3.4.1",
+    "chalk": "^1.1.1",
     "codeclimate-test-reporter": "^0.1.1",
     "mocha": "^2.3.4",
     "mocha-lcov-reporter": "^1.0.0"
