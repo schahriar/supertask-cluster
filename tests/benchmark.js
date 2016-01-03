@@ -11,6 +11,7 @@ var cluster;
 var ERROR_THRESHOLD = 10;
 
 function m(a, b, callback){ callback(null, a*b); }
+function r(callback) { callback(null, 'r'); }
 
 function SIGN_COLOR(value, threshold, inverse) {
     var scavenge = value, color = "black";
@@ -108,6 +109,7 @@ function BENCHMARK(func, options) {
             LOG(chalk.red("> BENCHMARK FAILED <"));
             console.trace(error);
             }else{
+                if(options.realParallel) LOG("\t" + chalk.cyan("PARALLEL @" + options.parallel));
                 LOG("\tAveraged at", NANO_TO_MS(stats.average) + 'ms', SIGN_COLOR("±" + stats.error + '%', options.threshold || ERROR_THRESHOLD, true));
                 LOG("\tWorst Case:", NANO_TO_MS(stats.max) + 'ms', "Best Case:", NANO_TO_MS(stats.min) + 'ms');
                 LOG("\tTotal time:", NANO_TO_MS(stats.overall) + 'ms', "for", stats.total, "rounds");
@@ -129,26 +131,40 @@ describe("Benchmark Suite", function() {
     this.timeout(20000);
     after(function(done) {
         async.waterfall([
-        BENCHMARK(function Cluster_Parallel(callback){
+        BENCHMARK(function Cluster_Multiply(callback){
             cluster.do('multiply', 4, 8, function(error, r) {
                 if(!error && (r !== 4*8)) error = new Error("Wrong output");
                 callback(error);
             });
-        }, { iterations: 15, threshold: 90, parallel: require('os').cpus().length }),
-        BENCHMARK(function Local(callback){
+        }, { iterations: 400, threshold: 90, parallel: require('os').cpus().length, realParallel: true }),
+        BENCHMARK(function Local_Multiply(callback){
             cluster.addLocal('mLocal', m);
             cluster.do('mLocal', 4, 8, function(error, r) {
                 if(!error && (r !== 4*8)) error = new Error("Wrong output");
                 callback(error);
             });
-        }, { iterations: 15, threshold: 90, parallel: require('os').cpus().length })
+        }, { iterations: 400, threshold: 90, parallel: require('os').cpus().length }),
+        BENCHMARK(function Cluster_Return(callback){
+            cluster.do('returnBasic', function(error, r) {
+                if(!error && (r !== 'r')) error = new Error("Wrong output");
+                callback(error);
+            });
+        }, { iterations: 200, threshold: 90, parallel: require('os').cpus().length, realParallel: true }),
+        BENCHMARK(function Local_Return(callback){
+            cluster.addLocal('rLocal', r);
+            cluster.do('rLocal', function(error, r) {
+                if(!error && (r !== 'r')) error = new Error("Wrong output");
+                callback(error);
+            });
+        }, { iterations: 200, threshold: 90, parallel: require('os').cpus().length }),
+        
         ], done);
     });
     it('should init', function() {
         cluster = new Cluster();
         cluster.deploy();
     });
-    it('should add and compile on cluster', function(done) {
+    it('should add task #multiply', function(done) {
         this.slow(1000);
         cluster.addShared('multiply', m, function(error, task) {
             if(error) throw error;
@@ -160,6 +176,24 @@ describe("Benchmark Suite", function() {
                 async.times(require('os').cpus().length, function(n, callback){
                     cluster.do('multiply', 4, 8, function(error, r) {
                         if(!error && (r !== 4*8)) error = new Error("Wrong output");
+                        callback(error);
+                    });
+                }, done);
+            });
+        });
+    });
+    it('should add task #returnBasic', function(done) {
+        this.slow(1000);
+        cluster.addShared('returnBasic', r, function(error, task) {
+            if(error) throw error;
+            task.distribute(function(error, success) {
+                if(error) throw error;
+                expect(success[0]).to.be.gt(0);
+                // Run n times to compile across Workers
+                // A precompile method is not implemented yet
+                async.times(require('os').cpus().length, function(n, callback){
+                    cluster.do('returnBasic', function(error, r) {
+                        if(!error && (r !== 'r')) error = new Error("Wrong output");
                         callback(error);
                     });
                 }, done);
