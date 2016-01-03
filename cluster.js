@@ -80,14 +80,17 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
         this.get(name).model.func.apply(context, [callback]);
     }else{
         // Send to Cluster Worker
-        this._STC_SEND(MIN_LOAD.i, {
+        var ticket = this._STC_SEND(MIN_LOAD.i, {
             type: "do",
             name: name,
             args: args
         }, function(error, success, response) {
+            // Delete Load Ticket
+            ClusterLoad[MIN_LOAD.i].delete(ticket);
             if(error || !success) return callback(error || new Error("Unknown error occurred"));
             callback.apply(null, response.args || []);
         });
+        ClusterLoad[MIN_LOAD.i].set(ticket, true);
     }
 };
 
@@ -134,6 +137,7 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
         callback((response.error)?(new Error(response.error)):null, response.success, response);
     }
     this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
+    return message.ticket;
 };
 
 // Override addShared implementation
