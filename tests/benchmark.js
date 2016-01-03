@@ -9,6 +9,8 @@ var cluster;
 
 var ERROR_THRESHOLD = 10;
 
+function m(a, b, callback){ callback(null, a*b); }
+
 function SIGN_COLOR(value, threshold, inverse) {
     var scavenge = value, color = "black";
     // If value is string account for single character pre/postfix (very specific/awful implementation)
@@ -127,7 +129,7 @@ describe("Init Test Suite", function() {
         cluster.deploy();
     });
     it('should add and compile on cluster', function(done) {
-        cluster.addShared('multiply', 'module.exports = function m(a, b, callback){ callback(null, a*b); }', function(error, task) {
+        cluster.addShared('multiply', m, function(error, task) {
             if(error) throw error;
             task.distribute(function(error, success) {
                 if(error) throw error;
