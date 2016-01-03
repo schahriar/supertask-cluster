@@ -44,42 +44,71 @@ function REDUCE_STATS(array) {
         max: MAX,
         average: AVG,
         error: Math.round((Math.abs(AVG - MIN)/Math.abs(MIN) + Math.abs(AVG - MAX)/Math.abs(MAX))/2 * 100000)/1000,
-        sum: SUM
+        sum: SUM,
+        total: array.length
     };
 }
 
-function MAKE_BENCHMARK(func, iterations, callback) {
+function MAKE_BENCHMARK(func, options, callback) {
     var count = 0;
     var stats = [];
+    var Total_Started = process.hrtime();
     async.doWhilst(function BENCHMARK_WRAPPER(callback){
         count++;
-        var started = process.hrtime();
-        func(function BENCHMARK_CALLBACK(error){
-            var finished = process.hrtime(started);
-            // Calculate Time Difference
-            var diff = finished[0] * 1e9 + finished[1];
-            stats.push(diff);
-            callback(error, stats);
-        });
+        function BENCHMARK_CALLBACK(unique_callback){
+            var started = process.hrtime();
+            return function BENCHMARK_CALLBACK__FUNC(error) {
+                var finished = process.hrtime(started);
+                // Calculate Time Difference
+                var diff = finished[0] * 1e9 + finished[1];
+                // Push difference to stats
+                stats.push(diff);
+                unique_callback(error, stats);
+            };
+        }
+        if(options.parallel) {
+            // Parallelize on all cores
+            async.times(options.parallel, function(n, parallel_callback){
+                func(BENCHMARK_CALLBACK(parallel_callback));
+            }, callback);
+        }else{
+            func(BENCHMARK_CALLBACK(callback));
+        }
     }, function BENCHMARK_ITERATOR(){
-        return count < (iterations || 10);
+        return count < (options.iterations || 10);
     }, function BENCHMARK_RESULTS(error){
-        callback(error, REDUCE_STATS(stats));
+        var Reduced = REDUCE_STATS(stats);
+        var Total_Finished = process.hrtime(Total_Started);
+        // Calculate Time Difference
+        Reduced.overall = Total_Finished[0] * 1e9 + Total_Finished[1];
+        callback(error, Reduced);
     });
 }
 
-function OUTPUT_BENCHMARK(func, iterations, threshold, callback) {
-    MAKE_BENCHMARK(func, iterations, function(error, stats) {
-        console.log("--------------------------\nBENCHMARK RESULTS FOR", chalk.cyan(func.name || 'Unknown'));
+function OUTPUT_BENCHMARK(func, options, callback) {
+    function LOG() {
+        // Mocha ident
+        var prepend = "    ";
+        var args = Array.prototype.slice.call(arguments);
+        args.unshift(prepend);
+        args = args.map(function(v){
+            // Add prepend after all new lines created with \n\r ...
+            if(typeof v === 'string') v = v.replace(/(?:\r\n|\r|\n)/g, "\n" + prepend);
+            return chalk.gray(v);
+        });
+        console.log.apply(console, args);
+    }
+    MAKE_BENCHMARK(func, options, function(error, stats) {
+        LOG("\n" + chalk.green('√'), chalk.white("BENCHMARK RESULTS FOR"), chalk.cyan(func.name || 'Unknown'));
         if(error) {
-            console.log(chalk.red("> BENCHMARK FAILED <"));
+            LOG(chalk.red("> BENCHMARK FAILED <"));
             console.trace(error);
         }else{
-            console.log(">  Averaged at", NANO_TO_MS(stats.average) + 'ms', SIGN_COLOR("±" + stats.error + '%', threshold || ERROR_THRESHOLD, true));
-            console.log(">  Worst Case:", NANO_TO_MS(stats.max) + 'ms', "Best Case:", NANO_TO_MS(stats.min) + 'ms');
-            console.log(">  Total time:", NANO_TO_MS(stats.sum) + 'ms', "for", iterations, "rounds");
+            LOG("\tAveraged at", NANO_TO_MS(stats.average) + 'ms', SIGN_COLOR("±" + stats.error + '%', options.threshold || ERROR_THRESHOLD, true));
+            LOG("\tWorst Case:", NANO_TO_MS(stats.max) + 'ms', "Best Case:", NANO_TO_MS(stats.min) + 'ms');
+            LOG("\tTotal time:", NANO_TO_MS(stats.overall) + 'ms', "for", stats.total, "rounds");
         }
-        console.log("--------------------------");
+        LOG();
         if(callback) callback(error, stats);
     });
 }
@@ -104,15 +133,11 @@ describe("Init Test Suite", function() {
                 if(error) throw error;
                 expect(success[0]).to.be.gt(0);
                 OUTPUT_BENCHMARK(function Basic_Parallel_Test(callback){
-                    // Parallelize on all cores
-                    async.each(new Array(require('os').cpus().length), function(i, callback) {
-                        cluster.do('multiply', 4, 8, function(error, r) {
-                            if(!error && (r !== 4*8)) error = new Error("Wrong output");
-                            callback(error);
-                        });
-                    }, callback);
-                }, 1000, 15, function(){
-                    console.log("Finished running", 1000 * require('os').cpus().length, "tests");
+                    cluster.do('multiply', 4, 8, function(error, r) {
+                        if(!error && (r !== 4*8)) error = new Error("Wrong output");
+                        callback(error);
+                    });
+                }, { iterations: 100, threshold: 15, parallel: require('os').cpus().length }, function(){
                     done();
                 });
             });
