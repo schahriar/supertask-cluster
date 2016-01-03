@@ -1,5 +1,6 @@
 var async = require('async');
 var chalk = require('chalk');
+var mocha = require('mocha');
 var chai = require("chai");
 var expect = chai.expect;
 var inspect = require("util").inspect;
@@ -87,7 +88,7 @@ function MAKE_BENCHMARK(func, options, callback) {
     });
 }
 
-function OUTPUT_BENCHMARK(func, options, callback) {
+function BENCHMARK(func, options) {
     function LOG() {
         // Mocha ident
         var prepend = "    ";
@@ -100,19 +101,21 @@ function OUTPUT_BENCHMARK(func, options, callback) {
         });
         console.log.apply(console, args);
     }
-    MAKE_BENCHMARK(func, options, function(error, stats) {
-        LOG("\n" + chalk.green('√'), chalk.white("BENCHMARK RESULTS FOR"), chalk.cyan(func.name || 'Unknown'));
-        if(error) {
+    return function(callback) {
+        MAKE_BENCHMARK(func, options, function(error, stats) {
+            LOG("\n" + chalk.green('-'),chalk.white("BENCHMARK RESULTS FOR"), chalk.cyan(func.name || 'Unknown'));
+            if(error) {
             LOG(chalk.red("> BENCHMARK FAILED <"));
             console.trace(error);
-        }else{
-            LOG("\tAveraged at", NANO_TO_MS(stats.average) + 'ms', SIGN_COLOR("±" + stats.error + '%', options.threshold || ERROR_THRESHOLD, true));
-            LOG("\tWorst Case:", NANO_TO_MS(stats.max) + 'ms', "Best Case:", NANO_TO_MS(stats.min) + 'ms');
-            LOG("\tTotal time:", NANO_TO_MS(stats.overall) + 'ms', "for", stats.total, "rounds");
-        }
-        LOG();
-        if(callback) callback(error, stats);
-    });
+            }else{
+                LOG("\tAveraged at", NANO_TO_MS(stats.average) + 'ms', SIGN_COLOR("±" + stats.error + '%', options.threshold || ERROR_THRESHOLD, true));
+                LOG("\tWorst Case:", NANO_TO_MS(stats.max) + 'ms', "Best Case:", NANO_TO_MS(stats.min) + 'ms');
+                LOG("\tTotal time:", NANO_TO_MS(stats.overall) + 'ms', "for", stats.total, "rounds");
+            }
+            LOG();
+            callback();
+        });
+    };
 }
 
 // Finish the compare method
@@ -122,13 +125,31 @@ function OUTPUT_BENCHMARK(func, options, callback) {
     });
 }*/
 
-describe("Init Test Suite", function() {
+describe("Benchmark Suite", function() {
     this.timeout(20000);
-    it('should construct an instance', function() {
+    after(function(done) {
+        async.waterfall([
+        BENCHMARK(function Cluster_Parallel(callback){
+            cluster.do('multiply', 4, 8, function(error, r) {
+                if(!error && (r !== 4*8)) error = new Error("Wrong output");
+                callback(error);
+            });
+        }, { iterations: 15, threshold: 90, parallel: require('os').cpus().length }),
+        BENCHMARK(function Local(callback){
+            cluster.addLocal('mLocal', m);
+            cluster.do('mLocal', 4, 8, function(error, r) {
+                if(!error && (r !== 4*8)) error = new Error("Wrong output");
+                callback(error);
+            });
+        }, { iterations: 15, threshold: 90, parallel: require('os').cpus().length })
+        ], done);
+    });
+    it('should init', function() {
         cluster = new Cluster();
         cluster.deploy();
     });
     it('should add and compile on cluster', function(done) {
+        this.slow(1000);
         cluster.addShared('multiply', m, function(error, task) {
             if(error) throw error;
             task.distribute(function(error, success) {
@@ -143,16 +164,6 @@ describe("Init Test Suite", function() {
                     });
                 }, done);
             });
-        });
-    });
-    it('should run tasks on the cluster with arguments', function(done) {
-        OUTPUT_BENCHMARK(function Basic_Parallel_Test(callback){
-            cluster.do('multiply', 4, 8, function(error, r) {
-                if(!error && (r !== 4*8)) error = new Error("Wrong output");
-                callback(error);
-            });
-        }, { iterations: 15, threshold: 90, parallel: require('os').cpus().length }, function(){
-            done();
         });
     });
 });
