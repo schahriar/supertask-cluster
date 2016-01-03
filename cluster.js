@@ -31,7 +31,7 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     cluster.setupMaster({
         exec: './lib/Worker.js',
         args: [],
-        silent: false
+        silent: true
     });
     // Fork workers.
     for (var i = 0; i < cores; i++) {
