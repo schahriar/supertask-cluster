@@ -126,21 +126,31 @@ describe("Init Test Suite", function() {
         cluster = new Cluster();
         cluster.deploy();
     });
-    it('should run tasks on the cluster with arguments', function(done) {
+    it('should add and compile on cluster', function(done) {
         cluster.addShared('multiply', 'module.exports = function m(a, b, callback){ callback(null, a*b); }', function(error, task) {
             if(error) throw error;
             task.distribute(function(error, success) {
                 if(error) throw error;
                 expect(success[0]).to.be.gt(0);
-                OUTPUT_BENCHMARK(function Basic_Parallel_Test(callback){
+                // Run n times to compile across Workers
+                // A precompile method is not implemented yet
+                async.times(require('os').cpus().length, function(n, callback){
                     cluster.do('multiply', 4, 8, function(error, r) {
                         if(!error && (r !== 4*8)) error = new Error("Wrong output");
                         callback(error);
                     });
-                }, { iterations: 100, threshold: 15, parallel: require('os').cpus().length }, function(){
-                    done();
-                });
+                }, done);
             });
+        });
+    });
+    it('should run tasks on the cluster with arguments', function(done) {
+        OUTPUT_BENCHMARK(function Basic_Parallel_Test(callback){
+            cluster.do('multiply', 4, 8, function(error, r) {
+                if(!error && (r !== 4*8)) error = new Error("Wrong output");
+                callback(error);
+            });
+        }, { iterations: 15, threshold: 90, parallel: require('os').cpus().length }, function(){
+            done();
         });
     });
 });
