@@ -1,13 +1,14 @@
 {
   "name": "supertask-cluster",
-  "version": "0.1.1-alpha",
+  "version": "0.1.2-alpha",
   "description": "A cluster superset of Supertask",
   "main": "cluster.js",
   "scripts": {
     "pretest": "mocha ./tests/main.js",
     "test": "mocha coverage.js -R mocha-lcov-reporter > lcov.info",
     "posttest": "codeclimate-test-reporter < lcov.info",
-    "localtest": "mocha ./tests/main.js"
+    "localtest": "mocha ./tests/main.js",
+    "benchmark": "mocha ./tests/benchmark.js"
   },
   "repository": {
     "type": "git",
