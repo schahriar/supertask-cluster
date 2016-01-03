@@ -1,5 +1,6 @@
 {
   "name": "supertask-cluster",
+  "version": "0.1.1-alpha",
   "description": "A cluster superset of Supertask",
   "main": "cluster.js",
   "scripts": {
