@@ -9,7 +9,7 @@
     "posttest": "codeclimate-test-reporter < lcov.info",
     "localtest": "mocha ./tests/main.js",
     "benchmark": "mocha ./tests/benchmark.js",
-    "docs": "jsdoc2md cluster.js > api.md"
+    "docs": "node docs.js"
   },
   "repository": {
     "type": "git",
