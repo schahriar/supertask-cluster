@@ -214,4 +214,15 @@ SuperTaskCluster.prototype.totalWorkers = function STC_TOTAL_WORKERS() {
     return this._STC_HEAD_COUNT();
 };
 
+SuperTaskCluster.prototype.setMaxWorkers = function STC_SET_MAX_WORKERS(n) {
+    // Another interface to deploy
+    this.deploy(n);
+};
+
+SuperTaskCluster.prototype.addWorkers = function STC_ADD_WORKERS(n) {
+    // Add Additional workers
+    this.STC_MAX_TOTAL_WORKERS += n;
+    this.deploy();
+};
+
 module.exports = SuperTaskCluster;
