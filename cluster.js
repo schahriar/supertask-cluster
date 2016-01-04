@@ -24,17 +24,24 @@ but for the sake of consistency they will be referred
 to as Worker(s) in this module.
 */
 
-SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
+SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers) {
     var _this = this;
-    var cores = os.cpus().length;
+    this.STC_MAX_TOTAL_WORKERS = this.STC_MAX_TOTAL_WORKERS || maxTotalWorkers || os.cpus().length;
+    var WorkersRequired = Math.max(this.STC_MAX_TOTAL_WORKERS - this._STC_HEAD_COUNT(), 0) || 0;
     
-    cluster.setupMaster({
-        exec: './lib/Worker.js',
-        args: [],
-        silent: true
-    });
+    // Prevent reseting setupMaster (non-fatal)
+    if(!this.STC_IS_CLUSTER_SETUP) {
+        // Setup Master & Worker script
+        cluster.setupMaster({
+            exec: './lib/Worker.js',
+            args: [],
+            silent: true
+        });
+        this.STC_IS_CLUSTER_SETUP = true;
+    }
+    
     // Fork workers.
-    for (var i = 0; i < cores; i++) {
+    for (var i = 0; i < WorkersRequired; i++) {
         // Give the Worker an id
         // Note that NODE_UNIQUE_ID doesn't seem to work with setupMaster
         // as env is not passed down
@@ -44,18 +51,48 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER() {
     
     // Listen & Create ClusterLoad Maps
     Object.keys(cluster.workers).forEach(function(id) {
-        ClusterLoad[id] = new Map();
-        cluster.workers[id].on('message', function(response) {
-            _this._STC_MESSAGE_HANDLER(id, response);
-        });
+        if(!ClusterLoad[id]) {
+            ClusterLoad[id] = new Map();
+            cluster.workers[id].on('message', function(response) {
+                _this._STC_MESSAGE_HANDLER(id, response);
+            });
+        }
     });
 
-    cluster.on('exit', function(worker, code, signal) {
-        // Clear Map & Set to null
-        if(ClusterLoad[id]) ClusterLoad[id].clear();
-        ClusterLoad[id] = null;
-        console.log('worker ' + worker.process.pid + ' died');
+    // Prevent recreating event listeners
+    if(!this.STC_IS_CLUSTER_SETUP) {
+        cluster.on('exit', function CLUSTER_EXIT_LISTENER(worker, code, signal) {
+            // Clear Map & Set to null
+            if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
+            ClusterLoad[worker.id] = null;
+            console.log('worker #' + worker.id + ' died');
+            // Replace dead workers
+            // this uses STC_MAX_TOTAL_WORKERS property
+            // to prevent deploying extra workers
+            _this.deploy();
+        });
+    }
+};
+
+SuperTaskCluster.prototype._STC_HEAD_COUNT = function STC_HEAD_COUNT() {
+    // Finds the number of alive workers
+    var headCount = 0;
+    Object.keys(cluster.workers).forEach(function(id) {
+        if(!cluster.workers[id].isDead()) {
+            headCount++;
+        }
     });
+    return headCount;
+};
+
+SuperTaskCluster.prototype._STC_GET_ALIVE = function STC_GET_ALIVE() {
+    var aliveWorkers = [];
+    Object.keys(cluster.workers).forEach(function(id) {
+        if(!cluster.workers[id].isDead()) {
+            aliveWorkers.push(cluster.workers[id]);
+        }
+    });
+    return aliveWorkers;
 };
 
 SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
@@ -168,11 +205,13 @@ SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, cal
 };
 
 SuperTaskCluster.prototype.getWorkers = function STC_GET_WORKERS() {
-    return cluster.workers;
+    // Get all alive workers
+    return this._STC_GET_ALIVE();
 };
 
 SuperTaskCluster.prototype.totalWorkers = function STC_TOTAL_WORKERS() {
-    return Object.keys(this.getWorkers()).length;
+    // Returs total number of alive workers
+    return this._STC_HEAD_COUNT();
 };
 
 module.exports = SuperTaskCluster;
