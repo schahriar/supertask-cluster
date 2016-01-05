@@ -133,7 +133,6 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
         
         if(callback) callback((response.error)?(new Error(response.error)):null, response.success, response);
     }
-    this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
     if(callback) this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
     return message.ticket;
 };
@@ -168,6 +167,8 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
         });
         // Listen & respawn Workers
         cluster.on('exit', function CLUSTER_EXIT_LISTENER(worker, code, signal) {
+            // Emit dead event
+            _this.emit('CLUSTER_WORKER_DEAD::' + worker.id, code, signal);
             // Clear Map & Set to null
             if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
             ClusterLoad[worker.id] = null;
