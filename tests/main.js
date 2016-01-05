@@ -49,7 +49,6 @@ describe("Sanity Checks", function() {
         cluster.killWorker(workerToKill, false, function(error, code, signal) {
             if(error) throw error;
             expect(cluster.totalWorkers()).to.be.equal(currentTotal-1);
-            expect(signal).to.be.equal("SIGTERM");
             done();
         });
     });
@@ -60,7 +59,6 @@ describe("Sanity Checks", function() {
         cluster.killWorker(workerToKill, true, function(error, code, signal) {
             if(error) throw error;
             expect(cluster.totalWorkers()).to.be.equal(currentTotal-1);
-            expect(signal).to.be.equal("SIGTERM");
             done();
         });
     });
