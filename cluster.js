@@ -145,7 +145,7 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
  */
 SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers) {
     var _this = this;
-    this.STC_MAX_TOTAL_WORKERS = this.STC_MAX_TOTAL_WORKERS || maxTotalWorkers || os.cpus().length;
+    this.STC_MAX_TOTAL_WORKERS = maxTotalWorkers || this.STC_MAX_TOTAL_WORKERS || os.cpus().length;
     var WorkersRequired = Math.max(this.STC_MAX_TOTAL_WORKERS - this._STC_HEAD_COUNT(), 0) || 0;
     
     // Prevent reseting setupMaster (non-fatal)
