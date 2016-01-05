@@ -172,9 +172,9 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
     if(!this.STC_IS_CLUSTER_SETUP) {
         // Setup Master & Worker script
         cluster.setupMaster({
-            exec: './lib/Worker.js',
+            exec: (this.STC_DEBUG)?'./lib/Worker.debug.js':'./lib/Worker.js',
             args: [],
-            silent: true
+            silent: (this.STC_DEBUG)?false:true
         });
         this.STC_IS_CLUSTER_SETUP = true;
 
@@ -192,7 +192,7 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
             // Clear Map & Set to null
             if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
             ClusterLoad[worker.id] = null;
-            console.log('worker #' + worker.id + ' died');
+            if(this.STC_DEBUG) console.log('worker #' + worker.id + ' died');
             // Replace dead workers
             // this uses STC_MAX_TOTAL_WORKERS property
             // to prevent deploying extra workers
@@ -310,6 +310,16 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
     }else{
         this._STC_GRACEFUL_KILL(workerID, callback);
     }
+};
+
+/**
+ * Set the cluster to debug. Note that this uses a separate Worker code
+ * therefore currently online Workers will not log debug information.
+ *
+ * @param {Boolean} toggle - Toggles debug.
+ */
+SuperTaskCluster.prototype.setClusterDebug = function STC_SET_DEBUG(toggle) {
+    this.STC_DEBUG = (!!toggle);
 };
 
 module.exports = SuperTaskCluster;

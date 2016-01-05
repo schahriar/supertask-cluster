@@ -11,6 +11,7 @@
         * [.setMaxWorkers(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+setMaxWorkers)
         * [.addWorkers(n)](#module_supertask-cluster..SuperTaskCluster+addWorkers)
         * [.killWorker(workerID, graceful, [callback])](#module_supertask-cluster..SuperTaskCluster+killWorker)
+        * [.setClusterDebug(toggle)](#module_supertask-cluster..SuperTaskCluster+setClusterDebug)
     * [~AddCallback](#module_supertask-cluster..AddCallback) : <code>function</code>
 
 
@@ -29,6 +30,7 @@
     * [.setMaxWorkers(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+setMaxWorkers)
     * [.addWorkers(n)](#module_supertask-cluster..SuperTaskCluster+addWorkers)
     * [.killWorker(workerID, graceful, [callback])](#module_supertask-cluster..SuperTaskCluster+killWorker)
+    * [.setClusterDebug(toggle)](#module_supertask-cluster..SuperTaskCluster+setClusterDebug)
 
 
 -
@@ -127,6 +129,19 @@ Forcefully/Gracefully kills a Worker. Note that another worker is immediatelyfo
 | workerID | <code>Number</code> |  | ID of the Worker |
 | graceful | <code>Boolean</code> | <code>false</code> | Determine if the Worker should be give the chance to finish tasks before killing itself. |
 | [callback] | <code>function</code> |  | An optional callback to determine when the worker was actually killed. Calls with error, exitCode, signal arguments. |
+
+
+-
+
+<a name="module_supertask-cluster..SuperTaskCluster+setClusterDebug"></a>
+#### superTaskCluster.setClusterDebug(toggle)
+Set the cluster to debug. Note that this uses a separate Worker codetherefore currently online Workers will not log debug information.
+
+**Kind**: instance method of <code>[SuperTaskCluster](#module_supertask-cluster..SuperTaskCluster)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| toggle | <code>Boolean</code> | Toggles debug. |
 
 
 -
