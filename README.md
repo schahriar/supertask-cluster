@@ -40,6 +40,8 @@ TaskManager.do('taskname', 2, 4, function callback(error, result) {
 
 Note that the usual [Supertask](https://github.com/schahriar/supertask) methods work as this module is merely a superset. 
 
+## API
+[Check out API documentation here]('./api.md').
 More documentation and methods coming soon. Check out the test functions for more information in the mean time.
 
 ## Disclaimer

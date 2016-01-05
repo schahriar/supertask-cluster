@@ -1,3 +1,4 @@
+/** @module supertask-cluster */
 /// Required Core Modules
 var cluster = require('cluster');
 var os = require('os');
@@ -13,66 +14,25 @@ var async = require('async');
 // No Operation function
 function noop() { return null; }
 
+/**
+ * Creates new instance.
+ * @constructor
+ * @example Creating a new instance.
+ * var SuperTaskCluster = require('supertask-cluster');
+ * var TaskCluster = new SuperTaskCluster();
+ * 
+ * @returns {Instance} Returns a new instance of the module.
+ */
 var SuperTaskCluster = SuperTask;
 var ClusterLoad = {};
 
-/** AUTHOR'S NOTE **
+/* AUTHOR'S NOTE *
 The cluster's children can be called as
 Worker/(child)process/thread/core/etc. depending
 on your perspective on the underlying implementation
 but for the sake of consistency they will be referred
 to as Worker(s) in this module.
 */
-
-SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers) {
-    var _this = this;
-    this.STC_MAX_TOTAL_WORKERS = this.STC_MAX_TOTAL_WORKERS || maxTotalWorkers || os.cpus().length;
-    var WorkersRequired = Math.max(this.STC_MAX_TOTAL_WORKERS - this._STC_HEAD_COUNT(), 0) || 0;
-    
-    // Prevent reseting setupMaster (non-fatal)
-    if(!this.STC_IS_CLUSTER_SETUP) {
-        // Setup Master & Worker script
-        cluster.setupMaster({
-            exec: './lib/Worker.js',
-            args: [],
-            silent: true
-        });
-        this.STC_IS_CLUSTER_SETUP = true;
-    }
-    
-    // Fork workers.
-    for (var i = 0; i < WorkersRequired; i++) {
-        // Give the Worker an id
-        // Note that NODE_UNIQUE_ID doesn't seem to work with setupMaster
-        // as env is not passed down
-        cluster.setupMaster({args: [i]});
-        cluster.fork();
-    }
-    
-    // Listen & Create ClusterLoad Maps
-    Object.keys(cluster.workers).forEach(function(id) {
-        if(!ClusterLoad[id]) {
-            ClusterLoad[id] = new Map();
-            cluster.workers[id].on('message', function(response) {
-                _this._STC_MESSAGE_HANDLER(id, response);
-            });
-        }
-    });
-
-    // Prevent recreating event listeners
-    if(!this.STC_IS_CLUSTER_SETUP) {
-        cluster.on('exit', function CLUSTER_EXIT_LISTENER(worker, code, signal) {
-            // Clear Map & Set to null
-            if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
-            ClusterLoad[worker.id] = null;
-            console.log('worker #' + worker.id + ' died');
-            // Replace dead workers
-            // this uses STC_MAX_TOTAL_WORKERS property
-            // to prevent deploying extra workers
-            _this.deploy();
-        });
-    }
-};
 
 SuperTaskCluster.prototype._STC_HEAD_COUNT = function STC_HEAD_COUNT() {
     // Finds the number of alive workers
@@ -177,8 +137,71 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
     return message.ticket;
 };
 
-// Override addShared implementation
+/**
+ * Deploy/Redeploy workers based on the maximum number of workers. Use {@link SuperTaskCluster#setMaxWorkers} to set total workers.
+ *
+ * @param {Number} maxTotalWorkers - The maximum number of workers
+ * that should be deployed at any given time.
+ */
+SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers) {
+    var _this = this;
+    this.STC_MAX_TOTAL_WORKERS = this.STC_MAX_TOTAL_WORKERS || maxTotalWorkers || os.cpus().length;
+    var WorkersRequired = Math.max(this.STC_MAX_TOTAL_WORKERS - this._STC_HEAD_COUNT(), 0) || 0;
+    
+    // Prevent reseting setupMaster (non-fatal)
+    if(!this.STC_IS_CLUSTER_SETUP) {
+        // Setup Master & Worker script
+        cluster.setupMaster({
+            exec: './lib/Worker.js',
+            args: [],
+            silent: true
+        });
+        this.STC_IS_CLUSTER_SETUP = true;
+    }
+    
+    // Fork workers.
+    for (var i = 0; i < WorkersRequired; i++) {
+        // Give the Worker an id
+        // Note that NODE_UNIQUE_ID doesn't seem to work with setupMaster
+        // as env is not passed down
+        cluster.setupMaster({args: [i]});
+        cluster.fork();
+    }
+    
+    // Listen & Create ClusterLoad Maps
+    Object.keys(cluster.workers).forEach(function(id) {
+        if(!ClusterLoad[id]) {
+            ClusterLoad[id] = new Map();
+            cluster.workers[id].on('message', function(response) {
+                _this._STC_MESSAGE_HANDLER(id, response);
+            });
+        }
+    });
+
+    // Prevent recreating event listeners
+    if(!this.STC_IS_CLUSTER_SETUP) {
+        cluster.on('exit', function CLUSTER_EXIT_LISTENER(worker, code, signal) {
+            // Clear Map & Set to null
+            if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
+            ClusterLoad[worker.id] = null;
+            console.log('worker #' + worker.id + ' died');
+            // Replace dead workers
+            // this uses STC_MAX_TOTAL_WORKERS property
+            // to prevent deploying extra workers
+            _this.deploy();
+        });
+    }
+};
+
+/**
+ * Add a new task to SuperTask.
+ * 
+ * @param {String} name - Unique name of the task.
+ * @param {String|Function} source - Source/Function of the task.
+ * @param {AddCallback} callback - The callback that handles the response.
+ */
 SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, callback) {
+    // Overrides addShared implementation
     // VM requires a String source to compile
     // If given source is a function convert it to source (context is lost)
     if (typeof source === 'function') {
@@ -200,25 +223,53 @@ SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, cal
                 access: task.model.access
             }, (callback)?callback:noop);
         };
+        /**
+         * @callback AddCallback
+         * @param {Object} task
+         */
         callback(null, task);
     });
 };
 
+/**
+ * Get all alive Workers.
+ *
+ * @returns {Array} an array including Worker objects.
+ */
 SuperTaskCluster.prototype.getWorkers = function STC_GET_WORKERS() {
     // Get all alive workers
     return this._STC_GET_ALIVE();
 };
 
+/**
+ * Get total number of alive Workers.
+ *
+ * @returns {Number}
+ */
 SuperTaskCluster.prototype.totalWorkers = function STC_TOTAL_WORKERS() {
     // Returs total number of alive workers
     return this._STC_HEAD_COUNT();
 };
 
+/**
+ * Set total number of Workers and deploy new Workers if higher than before. Note that this does
+ * not reduce the number of workers (kill/terminate) but will add
+ * new workers to the cluster if the given argument exceeds
+ * previous maximum. 
+ *
+ * @param {Number} maxTotalWorkers - The maximum number of workers
+ * that should be deployed at any given time.
+ */
 SuperTaskCluster.prototype.setMaxWorkers = function STC_SET_MAX_WORKERS(n) {
     // Another interface to deploy
     this.deploy(n);
 };
 
+/**
+ * Add and deploy new Workers to the Cluster.
+ *
+ * @param {Number} n - Adds n number of workers to the cluster.
+ */
 SuperTaskCluster.prototype.addWorkers = function STC_ADD_WORKERS(n) {
     // Add Additional workers
     this.STC_MAX_TOTAL_WORKERS += n;
