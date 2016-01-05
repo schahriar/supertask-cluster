@@ -131,9 +131,10 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
             success: false
         };
         
-        callback((response.error)?(new Error(response.error)):null, response.success, response);
+        if(callback) callback((response.error)?(new Error(response.error)):null, response.success, response);
     }
     this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
+    if(callback) this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
     return message.ticket;
 };
 
