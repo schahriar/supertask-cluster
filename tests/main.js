@@ -6,6 +6,7 @@ var Cluster = require('../cluster');
 var cluster;
 
 describe("Sanity Checks", function() {
+    var STORAGE = {};
     it('should construct an instance', function() {
         cluster = new Cluster();
     });
@@ -15,11 +16,12 @@ describe("Sanity Checks", function() {
     });
     it('should get all the workers', function() {
         var workers = cluster.getWorkers();
-        expect(workers).to.be.an('array');
-        expect(workers).to.have.length.above(0);
-        expect(workers[0]).to.have.property('id');
-        expect(workers[0]).to.have.property('process');
-        expect(workers[0].process).to.have.property('pid');
+        var first = workers[Object.keys(workers)[0]];
+        expect(workers).to.be.an('object');
+        expect(Object.keys(workers)).to.have.length.above(0);
+        expect(first).to.have.property('id');
+        expect(first).to.have.property('process');
+        expect(first.process).to.have.property('pid');
     });
     it('should add workers', function(done) {
         var currentTotal = cluster.totalWorkers();
@@ -34,10 +36,36 @@ describe("Sanity Checks", function() {
         cluster.setMaxWorkers(currentTotal+2);
         setImmediate(function() {
             var workers = cluster.getWorkers();
-            expect(workers).to.be.an('array');
-            expect(workers).to.have.length.above(currentTotal+1);
+            expect(workers).to.be.an('object');
+            expect(Object.keys(workers)).to.have.length.above(currentTotal+1);
             done();
         });
+    });
+    it('should kill a worker', function(done) {
+        var currentTotal = cluster.totalWorkers();
+        var IDs = Object.keys(cluster.getWorkers());
+        STORAGE['lastTotal'] = currentTotal;
+        var workerToKill = IDs[IDs.length - 1];
+        cluster.killWorker(workerToKill, false, function(error, code, signal) {
+            if(error) throw error;
+            expect(cluster.totalWorkers()).to.be.equal(currentTotal-1);
+            expect(signal).to.be.equal("SIGTERM");
+            done();
+        });
+    });
+    it('should kill a worker gracefully', function(done) {
+        var currentTotal = cluster.totalWorkers();
+        var IDs = Object.keys(cluster.getWorkers());
+        var workerToKill = IDs[IDs.length - 2];
+        cluster.killWorker(workerToKill, true, function(error, code, signal) {
+            if(error) throw error;
+            expect(cluster.totalWorkers()).to.be.equal(currentTotal-1);
+            expect(signal).to.be.equal("SIGTERM");
+            done();
+        });
+    });
+    it('should respawn workers', function() {
+        expect(cluster.totalWorkers()).to.be.gte(STORAGE['lastTotal']);
     });
 });
 

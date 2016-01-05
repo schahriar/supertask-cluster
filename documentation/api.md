@@ -6,10 +6,11 @@
         * [new SuperTaskCluster()](#new_module_supertask-cluster..SuperTaskCluster_new)
         * [.deploy(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+deploy)
         * [.addShared(name, source, callback)](#module_supertask-cluster..SuperTaskCluster+addShared)
-        * [.getWorkers()](#module_supertask-cluster..SuperTaskCluster+getWorkers) ⇒ <code>Array</code>
+        * [.getWorkers()](#module_supertask-cluster..SuperTaskCluster+getWorkers) ⇒ <code>Object</code>
         * [.totalWorkers()](#module_supertask-cluster..SuperTaskCluster+totalWorkers) ⇒ <code>Number</code>
         * [.setMaxWorkers(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+setMaxWorkers)
         * [.addWorkers(n)](#module_supertask-cluster..SuperTaskCluster+addWorkers)
+        * [.killWorker(workerID, graceful, [callback])](#module_supertask-cluster..SuperTaskCluster+killWorker)
     * [~AddCallback](#module_supertask-cluster..AddCallback) : <code>function</code>
 
 
@@ -23,10 +24,11 @@
     * [new SuperTaskCluster()](#new_module_supertask-cluster..SuperTaskCluster_new)
     * [.deploy(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+deploy)
     * [.addShared(name, source, callback)](#module_supertask-cluster..SuperTaskCluster+addShared)
-    * [.getWorkers()](#module_supertask-cluster..SuperTaskCluster+getWorkers) ⇒ <code>Array</code>
+    * [.getWorkers()](#module_supertask-cluster..SuperTaskCluster+getWorkers) ⇒ <code>Object</code>
     * [.totalWorkers()](#module_supertask-cluster..SuperTaskCluster+totalWorkers) ⇒ <code>Number</code>
     * [.setMaxWorkers(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+setMaxWorkers)
     * [.addWorkers(n)](#module_supertask-cluster..SuperTaskCluster+addWorkers)
+    * [.killWorker(workerID, graceful, [callback])](#module_supertask-cluster..SuperTaskCluster+killWorker)
 
 
 -
@@ -72,11 +74,11 @@ Add a new task to SuperTask.
 -
 
 <a name="module_supertask-cluster..SuperTaskCluster+getWorkers"></a>
-#### superTaskCluster.getWorkers() ⇒ <code>Array</code>
+#### superTaskCluster.getWorkers() ⇒ <code>Object</code>
 Get all alive Workers.
 
 **Kind**: instance method of <code>[SuperTaskCluster](#module_supertask-cluster..SuperTaskCluster)</code>  
-**Returns**: <code>Array</code> - an array including Worker objects.  
+**Returns**: <code>Object</code> - an Object including Worker objects indexed (keyed) by Worker ID.  
 
 -
 
@@ -110,6 +112,21 @@ Add and deploy new Workers to the Cluster.
 | Param | Type | Description |
 | --- | --- | --- |
 | n | <code>Number</code> | Adds n number of workers to the cluster. |
+
+
+-
+
+<a name="module_supertask-cluster..SuperTaskCluster+killWorker"></a>
+#### superTaskCluster.killWorker(workerID, graceful, [callback])
+Forcefully/Gracefully kills a Worker. Note that another worker is immediatelyforked to replace the killed Worker. In order to reduce the number of workersset setMaxWorkers before calling this function.
+
+**Kind**: instance method of <code>[SuperTaskCluster](#module_supertask-cluster..SuperTaskCluster)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| workerID | <code>Number</code> |  | ID of the Worker |
+| graceful | <code>Boolean</code> | <code>false</code> | Determine if the Worker should be give the chance to finish tasks before killing itself. |
+| [callback] | <code>function</code> |  | An optional callback to determine when the worker was actually killed. Calls with error, exitCode, signal arguments. |
 
 
 -

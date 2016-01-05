@@ -46,10 +46,10 @@ SuperTaskCluster.prototype._STC_HEAD_COUNT = function STC_HEAD_COUNT() {
 };
 
 SuperTaskCluster.prototype._STC_GET_ALIVE = function STC_GET_ALIVE() {
-    var aliveWorkers = [];
+    var aliveWorkers = {};
     Object.keys(cluster.workers).forEach(function(id) {
         if(!cluster.workers[id].isDead()) {
-            aliveWorkers.push(cluster.workers[id]);
+            aliveWorkers[id] = cluster.workers[id];
         }
     });
     return aliveWorkers;
@@ -113,6 +113,8 @@ SuperTaskCluster.prototype._STC_BROADCAST = function STC_BROADCAST(message, call
 };
 
 SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) {
+    // Check if ID is valid
+    if(!cluster.workers[id]) return callback(new Error('Worker with the given ID was not found.'));
     // Create new ticket for message
     message.ticket = shortid.generate();
     cluster.workers[id].send(message);
@@ -135,6 +137,24 @@ SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) 
     }
     if(callback) this.on('CLUSTER_CALLBACK::' + id + "::" + message.ticket, STC_SEND_CALLBACK);
     return message.ticket;
+};
+
+SuperTaskCluster.prototype._STC_KILL = function STC_KILL(id, callback) {
+    cluster.workers[id].kill();
+    // Call callback once worker is dead
+    if(callback) this.once("CLUSTER_WORKER_DEAD::" + id, function(code, signal){
+        callback(null, code, signal);
+    });
+};
+
+SuperTaskCluster.prototype._STC_GRACEFUL_KILL = function STC_KILL(id, callback) {
+    var _this = this;
+    this._STC_SEND(id, { type: 'STC_KILL_YOURSELF_PLEASE' }, function(error) {
+        // Worker denied to kill itself
+        if(error && callback) return callback(error || new Error('Worker did not respect a graceful kill.'));
+        
+        _this._STC_KILL(id, callback);
+    });
 };
 
 /**
@@ -194,7 +214,7 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
  * Add a new task to SuperTask.
  * 
  * @param {String} name - Unique name of the task.
- * @param {String|Function} source - Source/Function of the task.
+ * @param {(String|Function)} source - Source/Function of the task.
  * @param {AddCallback} callback - The callback that handles the response.
  */
 SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, callback) {
@@ -231,7 +251,7 @@ SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, cal
 /**
  * Get all alive Workers.
  *
- * @returns {Array} an array including Worker objects.
+ * @returns {Object} an Object including Worker objects indexed (keyed) by Worker ID.
  */
 SuperTaskCluster.prototype.getWorkers = function STC_GET_WORKERS() {
     // Get all alive workers
@@ -271,6 +291,25 @@ SuperTaskCluster.prototype.addWorkers = function STC_ADD_WORKERS(n) {
     // Add Additional workers
     this.STC_MAX_TOTAL_WORKERS += n;
     this.deploy();
+};
+
+/**
+ * Forcefully/Gracefully kills a Worker. Note that another worker is immediately
+ * forked to replace the killed Worker. In order to reduce the number of workers
+ * set setMaxWorkers before calling this function.
+ *
+ * @param {Number} workerID - ID of the Worker
+ * @param {Boolean} graceful=false - Determine if the Worker should be give the
+ * chance to finish tasks before killing itself.
+ * @param {Function} [callback] - An optional callback to determine when the
+ * worker was actually killed. Calls with error, exitCode, signal arguments.
+ */
+SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, graceful, callback) {
+    if(!graceful) {
+        this._STC_KILL(workerID, callback);
+    }else{
+        this._STC_GRACEFUL_KILL(workerID, callback);
+    }
 };
 
 module.exports = SuperTaskCluster;
