@@ -148,7 +148,7 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
     this.STC_MAX_TOTAL_WORKERS = maxTotalWorkers || this.STC_MAX_TOTAL_WORKERS || os.cpus().length;
     var WorkersRequired = Math.max(this.STC_MAX_TOTAL_WORKERS - this._STC_HEAD_COUNT(), 0) || 0;
     
-    // Prevent reseting setupMaster (non-fatal)
+    // Prevent reseting setupMaster & recreating event listeners
     if(!this.STC_IS_CLUSTER_SETUP) {
         // Setup Master & Worker script
         cluster.setupMaster({
@@ -157,29 +157,15 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
             silent: true
         });
         this.STC_IS_CLUSTER_SETUP = true;
-    }
-    
-    // Fork workers.
-    for (var i = 0; i < WorkersRequired; i++) {
-        // Give the Worker an id
-        // Note that NODE_UNIQUE_ID doesn't seem to work with setupMaster
-        // as env is not passed down
-        cluster.setupMaster({args: [i]});
-        cluster.fork();
-    }
-    
-    // Listen & Create ClusterLoad Maps
-    Object.keys(cluster.workers).forEach(function(id) {
-        if(!ClusterLoad[id]) {
-            ClusterLoad[id] = new Map();
-            cluster.workers[id].on('message', function(response) {
-                _this._STC_MESSAGE_HANDLER(id, response);
-            });
-        }
-    });
 
-    // Prevent recreating event listeners
-    if(!this.STC_IS_CLUSTER_SETUP) {
+        // Listen & Create ClusterLoad Maps
+        cluster.on('fork', function(worker) {
+            ClusterLoad[worker.id] = new Map();
+            worker.on('message', function(response) {
+                _this._STC_MESSAGE_HANDLER(worker.id, response);
+            });
+        });
+        // Listen & respawn Workers
         cluster.on('exit', function CLUSTER_EXIT_LISTENER(worker, code, signal) {
             // Clear Map & Set to null
             if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
@@ -190,6 +176,15 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
             // to prevent deploying extra workers
             _this.deploy();
         });
+    }
+    
+    // Fork workers.
+    for (var i = 0; i < WorkersRequired; i++) {
+        // Give the Worker an id
+        // Note that NODE_UNIQUE_ID doesn't seem to work with setupMaster
+        // as env is not passed down
+        cluster.setupMaster({args: [i]});
+        cluster.fork();
     }
 };
 
