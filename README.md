@@ -53,8 +53,7 @@ var buffer = new Buffer(20000000);
 // Fill buffer with 'c's
 buffer.fill(9);
 // Create new Buffer on Worker 0. Note that the Buffer will take some time to upload. (approximately 20s per 1GB or 400ms for 20MB)
-TaskManager.createBufferOnWorker('0
-, 'largeBuffer', buffer, 'utf8', false, true, function(error){
+TaskManager.createBufferOnWorker('0', 'largeBuffer', buffer, 'utf8', false, true, function(error){
     if(error) throw error;
     // Here we create a reference to the Buffer
     var ref = cluster.workerBufferReference('largeBuffer');
