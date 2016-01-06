@@ -374,7 +374,7 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
 };
 
 /**
- * Send/Upload a local Buffer object to a worker with the given ID.
+ * Send/Upload a local Buffer object to a worker with the given ID. Note that although performance is relative to the hardware on average it takes about 20 seconds to upload a 1GB Buffer with nearly relative speeds for smaller sizes (e.g. 200ms for 10MB).
  *
  * @param {Number} workerID - ID of the Worker
  * @param {String} name - Unique Buffer name

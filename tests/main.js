@@ -126,11 +126,13 @@ describe("Worker Allocation Test Suite", function(){
         });
     });
     it('should allocate large Buffer on Worker', function(done) {
+        this.timeout(5000)
         var IDs = Object.keys(cluster.getWorkers());
         // 10 MB buffer
         var buffer = new Buffer(10000000);
         buffer.fill('*');
         cluster.createBufferOnWorker(IDs[IDs.length - 1], 'testLarge', buffer, 'utf8', false, true, function(error){
+            if(error) throw error;
             done(error);
         });
     });
