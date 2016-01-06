@@ -61,7 +61,7 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
     var args = Array.prototype.slice.call(arguments);
     var name = args.shift(), context = args.shift(), callback = args.pop();
     // Run task on a free Worker
-    var MIN_LOAD = { v: Infinity, i: 'master', refs: 0 };
+    var Candidate = { v: Infinity, i: 'master', refs: 0 };
     // Check arguments for StorageObject (only supports Buffer for now)
     var RequiredBufferReferences = [];
     for(var i = 0; i < args.length; i++) {
@@ -84,27 +84,27 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
                 if(Store[ID] === true) hasRefs++;
             }
         });
-        if((hasRefs > MIN_LOAD.refs) || (Worker.load.size <= MIN_LOAD.v)) {
-            MIN_LOAD.v = Worker.load.size;
-            MIN_LOAD.i = ID;
+        if((hasRefs > Candidate.refs) || (Worker.load.size <= Candidate.v)) {
+            Candidate.v = Worker.load.size;
+            Candidate.i = ID;
         }
     });
-    if((MIN_LOAD.i === 'master') || (!cluster.workers[MIN_LOAD.i])) {
+    if((Candidate.i === 'master') || (!cluster.workers[Candidate.i])) {
         // Apply locally
         this.get(name).model.func.apply(context, [callback]);
     }else{
         // Send to Cluster Worker
-        var ticket = this._STC_SEND(MIN_LOAD.i, {
+        var ticket = this._STC_SEND(Candidate.i, {
             type: "do",
             name: name,
             args: args
         }, true, function(error, success, response) {
             // Delete Load Ticket
-            ClusterMap.get(MIN_LOAD.i).load.delete(ticket);
+            ClusterMap.get(Candidate.i).load.delete(ticket);
             if(error || !success) return callback(error || new Error("Unknown error occurred"));
             callback.apply(null, response.args || []);
         });
-        ClusterMap.get(MIN_LOAD.i).load.set(ticket, true);
+        ClusterMap.get(Candidate.i).load.set(ticket, true);
     }
 };
 
