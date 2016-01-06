@@ -59,7 +59,7 @@ Create a new task:
 // Create a large 20MB buffer on Worker ID 0
 var buffer = new Buffer(20000000);
 // Fill buffer with 'c's
-buffer.fill(9);
+buffer.fill('c');
 // Create new Buffer on Worker 0. Note that the Buffer will take some time to upload.
 // (approximately 20s per 1GB or 400ms for 20MB)
 TaskManager.createBufferOnWorker('0', 'largeBuffer', buffer, 'utf8', false, true, function(error){
