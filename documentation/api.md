@@ -11,6 +11,8 @@
         * [.setMaxWorkers(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+setMaxWorkers)
         * [.addWorkers(n)](#module_supertask-cluster..SuperTaskCluster+addWorkers)
         * [.killWorker(workerID, graceful, [callback])](#module_supertask-cluster..SuperTaskCluster+killWorker)
+        * [.createBufferOnWorker(workerID, name, buffer, encoding, mutable, [chunky], [callback])](#module_supertask-cluster..SuperTaskCluster+createBufferOnWorker)
+        * [.workerBufferReference(name)](#module_supertask-cluster..SuperTaskCluster+workerBufferReference) ⇒ <code>Object</code>
         * [.setClusterDebug(toggle)](#module_supertask-cluster..SuperTaskCluster+setClusterDebug)
     * [~AddCallback](#module_supertask-cluster..AddCallback) : <code>function</code>
 
@@ -30,6 +32,8 @@
     * [.setMaxWorkers(maxTotalWorkers)](#module_supertask-cluster..SuperTaskCluster+setMaxWorkers)
     * [.addWorkers(n)](#module_supertask-cluster..SuperTaskCluster+addWorkers)
     * [.killWorker(workerID, graceful, [callback])](#module_supertask-cluster..SuperTaskCluster+killWorker)
+    * [.createBufferOnWorker(workerID, name, buffer, encoding, mutable, [chunky], [callback])](#module_supertask-cluster..SuperTaskCluster+createBufferOnWorker)
+    * [.workerBufferReference(name)](#module_supertask-cluster..SuperTaskCluster+workerBufferReference) ⇒ <code>Object</code>
     * [.setClusterDebug(toggle)](#module_supertask-cluster..SuperTaskCluster+setClusterDebug)
 
 
@@ -129,6 +133,39 @@ Forcefully/Gracefully kills a Worker. Note that another worker is immediatelyfo
 | workerID | <code>Number</code> |  | ID of the Worker |
 | graceful | <code>Boolean</code> | <code>false</code> | Determine if the Worker should be give the chance to finish tasks before killing itself. |
 | [callback] | <code>function</code> |  | An optional callback to determine when the worker was actually killed. Calls with error, exitCode, signal arguments. |
+
+
+-
+
+<a name="module_supertask-cluster..SuperTaskCluster+createBufferOnWorker"></a>
+#### superTaskCluster.createBufferOnWorker(workerID, name, buffer, encoding, mutable, [chunky], [callback])
+Send/Upload a local Buffer object to a worker with the given ID. Note that although performance is relative to the hardware on average it takes about 20 seconds to upload a 1GB Buffer with nearly relative speeds for smaller sizes (e.g. 200ms for 10MB).
+
+**Kind**: instance method of <code>[SuperTaskCluster](#module_supertask-cluster..SuperTaskCluster)</code>  
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| workerID | <code>Number</code> |  | ID of the Worker |
+| name | <code>String</code> |  | Unique Buffer name |
+| buffer | <code>Buffer</code> |  | A NodeJS Buffer object |
+| encoding | <code>String</code> |  | Encoding type of Buffer e.g. 'utf8' |
+| mutable | <code>Boolean</code> | <code>true</code> | Indicates whether Buffer will be mutable/editable in the Worker or copies of the buffer will be passed. |
+| [chunky] | <code>Boolean</code> |  | Indicates whether the Buffer should be sent in chunks or whole. Anything above 64kb will be sent in chunks by default which is a good idea. |
+| [callback] | <code>function</code> |  | Called after Buffer and its chunks have been fully uploaded to the Worker. |
+
+
+-
+
+<a name="module_supertask-cluster..SuperTaskCluster+workerBufferReference"></a>
+#### superTaskCluster.workerBufferReference(name) ⇒ <code>Object</code>
+Creates a Buffer reference on a Worker as a passable argument
+
+**Kind**: instance method of <code>[SuperTaskCluster](#module_supertask-cluster..SuperTaskCluster)</code>  
+**Returns**: <code>Object</code> - reference - A reference that can be passed as an argumentto do function.  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| name | <code>String</code> | Name of the Buffer uploaded to the Worker using [SuperTaskCluster#createBufferOnWorker](SuperTaskCluster#createBufferOnWorker) |
 
 
 -
