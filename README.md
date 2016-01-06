@@ -10,6 +10,14 @@ Note that this module is a superset of [Supertask](https://github.com/schahriar/
 npm install supertask-cluster
 ```
 
+# Features
+- Automatic Cluster & Worker creation
+- Cluster Monitoring, Worker resurrection
+- Bidirectional argument passing and results from Master to Worker and vice versa.
+- Processing & Compilation of function or JS source on Workers with minimal effort. (uses NodeJS VM no interpreters or parsers)
+- Buffer upload mechanism and Buffer references as arguments
+- Entirely written in JS and fully based on NodeJS core modules where possible
+
 # Usage
 Create a new shared task with a unique name and distribute it to all available Workers (one per core). Note that a unique name is required for every task.
 ```javascript
@@ -52,7 +60,8 @@ Create a new task:
 var buffer = new Buffer(20000000);
 // Fill buffer with 'c's
 buffer.fill(9);
-// Create new Buffer on Worker 0. Note that the Buffer will take some time to upload. (approximately 20s per 1GB or 400ms for 20MB)
+// Create new Buffer on Worker 0. Note that the Buffer will take some time to upload.
+// (approximately 20s per 1GB or 400ms for 20MB)
 TaskManager.createBufferOnWorker('0', 'largeBuffer', buffer, 'utf8', false, true, function(error){
     if(error) throw error;
     // Here we create a reference to the Buffer
