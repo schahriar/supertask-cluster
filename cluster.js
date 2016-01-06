@@ -25,6 +25,7 @@ function noop() { return null; }
  */
 var SuperTaskCluster = SuperTask;
 var ClusterMap = new Map();
+var BufferMap = new Map();
 
 /* AUTHOR'S NOTE *
 The cluster's children can be called as
@@ -114,8 +115,14 @@ SuperTaskCluster.prototype._STC_CREATE_BUFFER = function STC_CREATE_BUFFER(worke
             if(response.error) return callback(new Error(response.error || "Buffer failed to upload."));
             // Verify buffer digest
             if((!response.digest) || (response.digest !== BufferProtoObject.digest)) return callback(new Error("Checksum digest failed. Data was assumed corrupted."));
-            // TODO
             // Store Buffer availability
+            var BufferLoc = BufferMap.get(name);
+            if(!BufferLoc) BufferLoc = {};
+            if(!BufferLoc[workerID]) {
+                BufferLoc[workerID] = true;
+                BufferMap.set(name, BufferLoc);
+            }
+            // TODO
             // Add buffer remove (set to null on Worker)
             // --------------------
             callback(null, response.name);
@@ -226,6 +233,10 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
             // Delete Map & inner Map
             if(ClusterMap.get(worker.id).load) ClusterMap.get(worker.id).load.clear();
             ClusterMap.delete(worker.id);
+            // Delete Cluster from Buffer Map
+            BufferMap.forEach(function(value, key) {
+                value[worker.id] = false;
+            });
             if(this.STC_DEBUG) console.log('worker #' + worker.id + ' died');
             // Replace dead workers
             // this uses STC_MAX_TOTAL_WORKERS property
