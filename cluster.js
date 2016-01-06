@@ -81,7 +81,7 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
             type: "do",
             name: name,
             args: args
-        }, function(error, success, response) {
+        }, true, function(error, success, response) {
             // Delete Load Ticket
             ClusterMap.get(MIN_LOAD.i).load.delete(ticket);
             if(error || !success) return callback(error || new Error("Unknown error occurred"));
@@ -97,12 +97,11 @@ SuperTaskCluster.prototype._STC_MESSAGE_HANDLER = function STC_MESSAGE_HANDLER(i
     }
 };
 
-SuperTaskCluster.prototype._STC_BROADCAST = function STC_BROADCAST(message, callback) {
     var _this = this;
     var successfulResponses = 0;
     var errors = [];
     async.each(cluster.workers, function(worker, callback) {
-        _this._STC_SEND(worker.id, message, function(error, success) {
+        _this._STC_SEND(worker.id, message, timeout, function(error, success) {
             if(error) errors.push(error);
             else if(success) successfulResponses++;
             callback();
@@ -112,21 +111,27 @@ SuperTaskCluster.prototype._STC_BROADCAST = function STC_BROADCAST(message, call
     });
 };
 
-SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, callback) {
+SuperTaskCluster.prototype._STC_SEND = function STC_SEND(id, message, timeout, callback) {
     // Check if ID is valid
-    if(!cluster.workers[id]) return callback(new Error('Worker with the given ID was not found.'));
+    if(!cluster.workers[id]) {
+        if(callback) {
+            return callback(new Error('Worker with the given ID was not found.'));
+        }else{
+            return new Error('Worker with the given ID was not found.');
+        }
+    }
     // Create new ticket for message
     message.ticket = shortid.generate();
     cluster.workers[id].send(message);
     // Response timeout
-    var STC_SEND_TIMEOUT = setTimeout(STC_SEND_CALLBACK, (this.CLUSTER_TIMEOUT || 30000)*1);
-    var STC_SEND_ISDONE = false;
+    var STC_SEND_ISDONE = false, STC_SEND_TIMEOUT;
+    if(timeout) STC_SEND_TIMEOUT = setTimeout(STC_SEND_CALLBACK, (this.CLUSTER_TIMEOUT || 30000)*1);
     function STC_SEND_CALLBACK(response) {
         // TimedOut
         if(STC_SEND_ISDONE === true) return;
         
-        STC_SEND_ISDONE = true;
-        clearTimeout(STC_SEND_TIMEOUT);
+        if(timeout) STC_SEND_ISDONE = true;
+        if(timeout) clearTimeout(STC_SEND_TIMEOUT);
         
         if(!response) response = {
             error: "Failed to process. TimedOut!",
@@ -149,7 +154,7 @@ SuperTaskCluster.prototype._STC_KILL = function STC_KILL(id, callback) {
 
 SuperTaskCluster.prototype._STC_GRACEFUL_KILL = function STC_KILL(id, callback) {
     var _this = this;
-    this._STC_SEND(id, { type: 'STC_KILL_YOURSELF_PLEASE' }, function(error) {
+    this._STC_SEND(id, { type: 'STC_KILL_YOURSELF_PLEASE' }, true, function(error) {
         // Worker denied to kill itself
         if(error && callback) return callback(error || new Error('Worker did not respect a graceful kill.'));
         
@@ -240,7 +245,7 @@ SuperTaskCluster.prototype.addShared = function STC_ADD_SHARED(name, source, cal
                 priority: task.model.priority,
                 defaultContext: task.model.defaultContext,
                 access: task.model.access
-            }, (callback)?callback:noop);
+            }, true, (callback)?callback:noop);
         };
         /**
          * @callback AddCallback
