@@ -61,7 +61,14 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
     var args = Array.prototype.slice.call(arguments);
     var name = args.shift(), context = args.shift(), callback = args.pop();
     // Run task on a free Worker
-    var MIN_LOAD = { v: Infinity, i: 'master' };
+    var MIN_LOAD = { v: Infinity, i: 'master', refs: 0 };
+    // Check arguments for StorageObject (only supports Buffer for now)
+    var RequiredBufferReferences = [];
+    for(var i = 0; i < args.length; i++) {
+        if(StorageObject.is(args[i])) {
+            RequiredBufferReferences.push(args[i].name);
+        }
+    }
     // Find the best worker
     ClusterMap.forEach(function(Worker, ID) {
         if(!Worker.load) return;
@@ -69,7 +76,15 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
         by using <= we set the priority to the
         last worker.
         */
-        if(Worker.load.size <= MIN_LOAD.v) {
+        var hasRefs = 0;
+        // If there are references filter workers with those references
+        if(RequiredBufferReferences) BufferMap.forEach(function(Store, name) {
+            if(!Store) return;
+            if(RequiredBufferReferences.indexOf(name) !== -1) {
+                if(Store[ID] === true) hasRefs++;
+            }
+        });
+        if((hasRefs > MIN_LOAD.refs) || (Worker.load.size <= MIN_LOAD.v)) {
             MIN_LOAD.v = Worker.load.size;
             MIN_LOAD.i = ID;
         }
