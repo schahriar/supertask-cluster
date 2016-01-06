@@ -24,7 +24,7 @@ function noop() { return null; }
  * @returns {Instance} Returns a new instance of the module.
  */
 var SuperTaskCluster = SuperTask;
-var ClusterLoad = {};
+var ClusterMap = new Map();
 
 /* AUTHOR'S NOTE *
 The cluster's children can be called as
@@ -61,17 +61,17 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
     // Run task on a free Worker
     var MIN_LOAD = { v: Infinity, i: 'master' };
     // Find the best worker
-    Object.keys(ClusterLoad).forEach(function(id) {
-        if(!ClusterLoad[id]) return;
+    for (var Worker of ClusterMap) {
+        if(!Worker[1].load) return;
         /* Prioritizing the last worker
         by using <= we set the priority to the
         last worker.
         */
-        if(ClusterLoad[id].size <= MIN_LOAD.v) {
-            MIN_LOAD.v = ClusterLoad[id].size;
-            MIN_LOAD.i = id;
+        if(Worker[1].load.size <= MIN_LOAD.v) {
+            MIN_LOAD.v = Worker[1].load.size;
+            MIN_LOAD.i = Worker[0];
         }
-    });
+    }
     if((MIN_LOAD.i === 'master') || (!cluster.workers[MIN_LOAD.i])) {
         // Apply locally
         this.get(name).model.func.apply(context, [callback]);
@@ -83,11 +83,11 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
             args: args
         }, function(error, success, response) {
             // Delete Load Ticket
-            ClusterLoad[MIN_LOAD.i].delete(ticket);
+            ClusterMap.get(MIN_LOAD.i).load.delete(ticket);
             if(error || !success) return callback(error || new Error("Unknown error occurred"));
             callback.apply(null, response.args || []);
         });
-        ClusterLoad[MIN_LOAD.i].set(ticket, true);
+        ClusterMap.get(MIN_LOAD.i).load.set(ticket, true);
     }
 };
 
@@ -178,9 +178,11 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
         });
         this.STC_IS_CLUSTER_SETUP = true;
 
-        // Listen & Create ClusterLoad Maps
+        // Listen & Create ClusterMap
         cluster.on('fork', function(worker) {
-            ClusterLoad[worker.id] = new Map();
+            ClusterMap.set(worker.id, {
+                load: new Map()
+            });
             worker.on('message', function(response) {
                 _this._STC_MESSAGE_HANDLER(worker.id, response);
             });
@@ -189,9 +191,9 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
         cluster.on('exit', function CLUSTER_EXIT_LISTENER(worker, code, signal) {
             // Emit dead event
             _this.emit('CLUSTER_WORKER_DEAD::' + worker.id, code, signal);
-            // Clear Map & Set to null
-            if(ClusterLoad[worker.id]) ClusterLoad[worker.id].clear();
-            ClusterLoad[worker.id] = null;
+            // Delete Map & inner Map
+            if(ClusterMap.get(worker.id).load) ClusterMap.get(worker.id).load.clear();
+            ClusterMap.delete(worker.id);
             if(this.STC_DEBUG) console.log('worker #' + worker.id + ' died');
             // Replace dead workers
             // this uses STC_MAX_TOTAL_WORKERS property
