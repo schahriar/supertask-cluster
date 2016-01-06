@@ -9,7 +9,7 @@ var shortid = require('shortid');
 var async = require('async');
 ///
 /// Internal Modules
-
+var BufferTransfer = require('./lib/BufferTransfer');
 ///
 // No Operation function
 function noop() { return null; }
@@ -97,6 +97,33 @@ SuperTaskCluster.prototype._STC_MESSAGE_HANDLER = function STC_MESSAGE_HANDLER(i
     }
 };
 
+SuperTaskCluster.prototype._STC_CREATE_BUFFER = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, sendInChunks, callback) {
+    var _this = this;
+    
+    // Chucks buffer/Creates MD5 checksum etc.
+    var BufferProtoObject = new BufferTransfer(name, encoding, buffer, sendInChunks, mutable);
+    
+    this._STC_SEND(workerID, BufferProtoObject.AllocatorObject(), false, function _STC_BUFFER_CALLBACK(error, success, response) {
+        if(error || !success) return callback(error || new Error("Failed to allocate buffer on Worker."));
+        // Buffer allocated //
+        BufferProtoObject.each(function(message) {
+            _this._STC_SEND(workerID, message, false);
+        });
+        // Buffer has its own event type
+        _this.on('CLUSTER_CALLBACK::' + workerID + "::STC_BUFFER:" + name, function _STC_BUFFER_VERIFY(response) {
+            if(response.error) return callback(new Error(response.error || "Buffer failed to upload."));
+            // Verify buffer digest
+            if((!response.digest) || (response.digest !== BufferProtoObject.digest)) return callback(new Error("Checksum digest failed. Data was assumed corrupted."));
+            // TODO
+            // Store Buffer availability
+            // Add buffer remove (set to null on Worker)
+            // --------------------
+            callback(null, response.name);
+        });
+    });
+};
+
+SuperTaskCluster.prototype._STC_BROADCAST = function STC_BROADCAST(message, timeout, callback) {
     var _this = this;
     var successfulResponses = 0;
     var errors = [];
@@ -317,6 +344,25 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
     }else{
         this._STC_GRACEFUL_KILL(workerID, callback);
     }
+};
+
+/**
+ * Send/Upload a local Buffer object to a worker with the given ID.
+ *
+ * @param {Number} workerID - ID of the Worker
+ * @param {String} name - Unique Buffer name
+ * @param {Buffer} buffer - A NodeJS Buffer object
+ * @param {String} encoding - Encoding type of Buffer e.g. 'utf8'
+ * @param {Boolean} mutable=true - Indicates whether Buffer will be mutable/editable
+ * in the Worker or copies of the buffer will be passed.
+ * @param {Boolean} [chunky] - Indicates whether the Buffer should be sent in
+ * chunks or whole. Anything above 64kb will be sent in chunks by default
+ * which is a good idea.
+ * @param {Function} [callback] - Called after Buffer and its chunks have been
+ * fully uploaded to the Worker.
+ */
+SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback) {
+    this._STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback);
 };
 
 /**
