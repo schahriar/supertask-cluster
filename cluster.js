@@ -10,6 +10,7 @@ var async = require('async');
 ///
 /// Internal Modules
 var BufferTransfer = require('./lib/BufferTransfer');
+var StorageObject = require('./lib/StorageObject');
 ///
 // No Operation function
 function noop() { return null; }
@@ -374,6 +375,19 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
  */
 SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback) {
     this._STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback);
+};
+
+/**
+ * Creates a Buffer reference on a Worker 
+ * as a passable argument 
+ *
+ * @param {String} name - Name of the Buffer uploaded to the Worker
+ * using {@link SuperTaskCluster#createBufferOnWorker}
+ * @returns {Object} reference - A reference that can be passed as an argument
+ * to do function.
+ */
+SuperTaskCluster.prototype.workerBufferReference = function STC_BUFFER_REF(name) {
+    return StorageObject.create('Buffer', name);
 };
 
 /**
