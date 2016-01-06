@@ -115,3 +115,23 @@ describe("Cluster Test Suite", function() {
         });
     });
 });
+
+describe("Worker Allocation Test Suite", function(){
+    it('should allocate Buffer on Worker', function(done) {
+        var IDs = Object.keys(cluster.getWorkers());
+        var buffer = new Buffer(10);
+        buffer.fill('b');
+        cluster.createBufferOnWorker(IDs[IDs.length - 1], 'test', buffer, 'utf8', false, true, function(error){
+            done(error);
+        });
+    });
+    it('should allocate large Buffer on Worker', function(done) {
+        var IDs = Object.keys(cluster.getWorkers());
+        // 10 MB buffer
+        var buffer = new Buffer(10000000);
+        buffer.fill('*');
+        cluster.createBufferOnWorker(IDs[IDs.length - 1], 'testLarge', buffer, 'utf8', false, true, function(error){
+            done(error);
+        });
+    });
+});
