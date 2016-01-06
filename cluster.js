@@ -61,19 +61,17 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
     // Run task on a free Worker
     var MIN_LOAD = { v: Infinity, i: 'master' };
     // Find the best worker
-    // Intialize Worker (Blanket throws if var is used in the for of loop)
-    var Worker = [];
-    for (Worker of ClusterMap) {
-        if(!Worker[1].load) return;
+    ClusterMap.forEach(function(Worker, ID) {
+        if(!Worker.load) return;
         /* Prioritizing the last worker
         by using <= we set the priority to the
         last worker.
         */
-        if(Worker[1].load.size <= MIN_LOAD.v) {
-            MIN_LOAD.v = Worker[1].load.size;
-            MIN_LOAD.i = Worker[0];
+        if(Worker.load.size <= MIN_LOAD.v) {
+            MIN_LOAD.v = Worker.load.size;
+            MIN_LOAD.i = ID;
         }
-    }
+    });
     if((MIN_LOAD.i === 'master') || (!cluster.workers[MIN_LOAD.i])) {
         // Apply locally
         this.get(name).model.func.apply(context, [callback]);
