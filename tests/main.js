@@ -126,7 +126,7 @@ describe("Worker Allocation Test Suite", function(){
         });
     });
     it('should allocate large Buffer on Worker', function(done) {
-        this.timeout(5000)
+        this.timeout(5000);
         var IDs = Object.keys(cluster.getWorkers());
         // 10 MB buffer
         var buffer = new Buffer(10000000);
@@ -134,6 +134,20 @@ describe("Worker Allocation Test Suite", function(){
         cluster.createBufferOnWorker(IDs[IDs.length - 1], 'testLarge', buffer, 'utf8', false, true, function(error){
             if(error) throw error;
             done(error);
+        });
+    });
+    it('should pass Buffer to Task', function(done) {
+        cluster.addShared('bufferProcessor', function(buf, callback) {
+            var str = buf.toString('utf8', 5, 10);
+            callback(null, str);
+        }, function(error, task) {
+            task.permission(Cluster.ST_MINIMAL);
+            task.distribute(function(){
+                task.call(cluster.workerBufferReference('testLarge'), function(error, rstr){
+                    expect(rstr).to.equal('*****');
+                    done(error);
+                });
+            });
         });
     });
 });
