@@ -41,7 +41,49 @@ TaskManager.do('taskname', 2, 4, function callback(error, result) {
 Note that the usual [Supertask](https://github.com/schahriar/supertask) methods work as this module is merely a superset. 
 
 ## API
-[Check out API documentation here](./documentation/api.md).
+### Buffers
+Buffers allow you to pre-upload a StorageType (currently only NodeJS's internal Buffer object is supported) to a Worker in order to save upload time. This is inspired by GPU's parallelization mechanism whereby data is uploaded to the GPU in order to save bandwidth and data transfer time that will otherwise make parallelization on GPUs slow. This same concept applies to a Cluster and if large Buffers are passed as arguments to every function every time you'll spend most of your processing time uploading data. This is where **Buffers** come in. Buffers are automatically chunked & uploaded (like a stream) to avoid congestion that would otherwise make passing of a 2GB Buffer to a Worker impossible.
+
+#### Here is how to use Buffers:
+
+Create a new task:
+```javascript
+// Create a large 20MB buffer on Worker ID 0
+var buffer = new Buffer(20000000);
+// Fill buffer with 'c's
+buffer.fill(9);
+// Create new Buffer on Worker 0. Note that the Buffer will take some time to upload. (approximately 20s per 1GB or 400ms for 20MB)
+TaskManager.createBufferOnWorker('0
+, 'largeBuffer', buffer, 'utf8', false, true, function(error){
+    if(error) throw error;
+    // Here we create a reference to the Buffer
+    var ref = cluster.workerBufferReference('largeBuffer');
+    // Create a new task to process some of the Buffer
+    TaskManager.addShared('bufferProcessor', function (buf, callback) {
+        if(!buf) return callback(new Error('Buffer did not exist in the cluster'));
+        // Convert 10 chars to String starting from 2kb (results in 10 'c's in a row)
+        var str = buf.toString('utf8', 2000, 2010);
+        // Pass str to master
+        callback(null, str);
+    }, function (error, task) {
+        // Here we set the permissions to Minimal in order to make the Buffer object available to the task
+        task.permission(SupertaskCluster.ST_MINIMAL);
+        // Distribute the task to all Workers
+        task.distribute(function(){
+            // Run task with ref as an argument
+            task.call(ref, function(error, rstr){
+                // Processed string
+                console.log(rstr);
+                // Output: cccccccccc
+            });
+        });
+    });
+});
+```
+Note that the Cluster automatically chooses the best candidate that has the Buffer reference available. If the Buffer reference is not available in any of the workers it will be set to `undefined`.
+
+A Buffer can be immutable.
+[Read API documentation for more info](./documentation/api.md).
 More documentation and methods coming soon. Check out the test functions for more information in the mean time.
 
 ## Disclaimer
