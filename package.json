@@ -40,6 +40,6 @@
   "dependencies": {
     "async": "^1.5.0",
     "shortid": "^2.2.4",
-    "supertask": "^1.2.2"
+    "supertask": "^1.2.3"
   }
 }
