@@ -18,6 +18,7 @@ function noop() { return null; }
 /**
  * Creates new instance.
  * @constructor
+ * @alias supertask-cluster
  * @example Creating a new instance.
  * var SuperTaskCluster = require('supertask-cluster');
  * var TaskCluster = new SuperTaskCluster();
