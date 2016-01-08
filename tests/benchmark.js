@@ -68,6 +68,7 @@ describe("Benchmark Suite", function() {
     it('should init', function() {
         cluster = new Cluster();
         cluster.deploy();
+        cluster.setOptimization(Cluster.ST_O0);
     });
     it('should add task #multiply', function(done) {
         this.slow(1000);
