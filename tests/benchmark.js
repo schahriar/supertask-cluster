@@ -50,7 +50,7 @@ describe("Benchmark Suite", function() {
                 callback(error);
             });
         }, { iterations: 1000, threshold: 90, parallel: require('os').cpus().length, realParallel: true }),
-        bench.TEXT("Heavier functions are a little more appropriate for running in parallel. This is an unoptimized/unparallel version of MergeSort that will perform nearly as well or slightly better than a single threaded Node. On my quad core Core i5 machine I've observed over 30% performance increase when using the cluster. Note that the mergesort function I'm using here is not even a bit optimized for parallel. I'll write a parallel method once upload/download buffer methods of this module are done."),
+        bench.TEXT("Heavier functions are a little more appropriate for running in parallel. This is an unoptimized/unparallel version of MergeSort that will perform nearly as well or slightly better than a single threaded Node. On 4 thread of a Core i5 machine I've observed over 30% performance increase when using the cluster. Note that the mergesort function I'm using here is not even a bit optimized for parallel. I'll write a parallel method once upload/download buffer methods of this module are done."),
         bench.BENCHMARK('Sorting a random array with 20k elements 80 times', noop, function Local_MergeSort(callback){
             cluster.do('lmergeSort', BenchmarkArray, function(error, r) {
                 if(!error && (r.length < 1000)) error = new Error("Wrong output");
