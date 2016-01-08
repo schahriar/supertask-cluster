@@ -148,8 +148,8 @@ function BENCHMARK() {
                     LOG("\tWorst Case:", NANO_TO_MS(func.stats.max) + 'ms', "Best Case:", NANO_TO_MS(func.stats.min) + 'ms', "Total", NANO_TO_MS(func.total) + 'ms');
                     LOG("\t" + chalk.green(GET_OPS(func.stats.total, NANO_TO_MS_VAL(func.total))));
                     LOG();
-                    if(func.stats.average < best.v) {
-                        best.v = func.stats.average;
+                    if(func.total < best.v) {
+                        best.v = func.total;
                         best.name = func.name;
                     }
                 }
