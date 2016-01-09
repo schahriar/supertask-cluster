@@ -27,11 +27,12 @@ function noop() { return null; }
  */
 var SuperTaskCluster = SuperTask;
 var ClusterMap = new Map();
-var BufferMap = new Map();
+// Storage Map
+var STC_STORAGE_MAP = new Map();
 
 // Setup protocol
 var CommunicationModel = require('./lib/CommunicationModel');
-var COM = new CommunicationModel(cluster);
+var COM = new CommunicationModel(cluster, STC_STORAGE_MAP);
 
 /* AUTHOR'S NOTE *
 The cluster's children can be called as
@@ -72,7 +73,7 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
         */
         var hasRefs = 0;
         // If there are references filter workers with those references
-        if(RequiredBufferReferences) BufferMap.forEach(function(Store, name) {
+        if(RequiredBufferReferences) COM.getmap().forEach(function(Store, name) {
             if(!Store) return;
             if(RequiredBufferReferences.indexOf(name) !== -1) {
                 if(Store[ID] === true) hasRefs++;
@@ -100,38 +101,6 @@ SuperTaskCluster.prototype._STC_HANDLER = function STC_HANDLER() {
         });
         ClusterMap.get(Candidate.i).load.set(ticket, true);
     }
-};
-
-SuperTaskCluster.prototype._STC_CREATE_BUFFER = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, sendInChunks, callback) {
-    var _this = this;
-    
-    // Chucks buffer/Creates MD5 checksum etc.
-    var BufferProtoObject = new BufferTransfer(name, encoding, buffer, sendInChunks, mutable);
-    
-    COM.send(workerID, BufferProtoObject.AllocatorObject(), false, function _STC_BUFFER_CALLBACK(error, success, response) {
-        if(error || !success) return callback(error || new Error("Failed to allocate buffer on Worker."));
-        // Buffer allocated //
-        BufferProtoObject.each(function(message) {
-            COM.send(workerID, message, false);
-        });
-        // Buffer has its own event type
-        COM.on('CLUSTER_CALLBACK::' + workerID + "::STC_BUFFER:" + name, function _STC_BUFFER_VERIFY(response) {
-            if(response.error) return callback(new Error(response.error || "Buffer failed to upload."));
-            // Verify buffer digest
-            if((!response.digest) || (response.digest !== BufferProtoObject.digest)) return callback(new Error("Checksum digest failed. Data was assumed corrupted."));
-            // Store Buffer availability
-            var BufferLoc = BufferMap.get(name);
-            if(!BufferLoc) BufferLoc = {};
-            if(!BufferLoc[workerID]) {
-                BufferLoc[workerID] = true;
-                BufferMap.set(name, BufferLoc);
-            }
-            // TODO
-            // Add buffer remove (set to null on Worker)
-            // --------------------
-            callback(null, response.name);
-        });
-    });
 };
 
 SuperTaskCluster.prototype._STC_KILL = function STC_KILL(id, callback) {
@@ -190,7 +159,7 @@ SuperTaskCluster.prototype.deploy = function STC_DEPLOY_CLUSTER(maxTotalWorkers)
             if(ClusterMap.get(worker.id).load) ClusterMap.get(worker.id).load.clear();
             ClusterMap.delete(worker.id);
             // Delete Cluster from Buffer Map
-            BufferMap.forEach(function(value, key) {
+            COM.getmap().forEach(function(value, key) {
                 value[worker.id] = false;
             });
             if(this.STC_DEBUG) console.log('worker #' + worker.id + ' died');
@@ -329,7 +298,27 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
  * fully uploaded to the Worker.
  */
 SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback) {
-    this._STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback);
+    COM.buffer(workerID, name, buffer, encoding, mutable, chunky, callback);
+};
+
+/**
+ * Send/Upload a local Buffer object to a worker with the given ID. Note that although performance is relative to the hardware on average it takes about 20 seconds to upload a 1GB Buffer with nearly relative speeds for smaller sizes (e.g. 200ms for 10MB).
+ *
+ * @param {Number} workerID - ID of the Worker
+ * @param {String} name - Buffer name
+ * @param {Function} [callback] - Called after Buffer and its chunks have been
+ * fully downloaded. Buffer will be passed as the second argument followed by encoding
+ */
+SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(workerID, name, callback) {
+    COM.send(workerID, {
+        type: "buffer",
+        subtype: "get",
+        name: name
+    }, false, function(error) {
+        if(error) return callback(error);
+        var BufferObject = STC_STORAGE_MAP.get(name);
+        callback(error, BufferObject.get(), BufferObject.encoding);
+    });
 };
 
 /**

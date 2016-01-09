@@ -150,4 +150,15 @@ describe("Worker Allocation Test Suite", function(){
             });
         });
     });
+    it('should get Buffer from Worker', function(done) {
+        this.timeout(10000);
+        var IDs = Object.keys(cluster.getWorkers());
+        cluster.getBufferFromWorker(IDs[IDs.length - 1], 'testLarge', function(error, buf, encoding) {
+            if(error) throw error;
+            expect(buf.length).to.be.equal(10000000);
+            expect(encoding).to.be.equal('utf8');
+            expect(buf.toString(encoding, 10, 12)).to.be.equal('**');
+            done();
+        });
+    });
 });
