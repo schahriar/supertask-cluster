@@ -309,7 +309,7 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
  * TaskCluster.createBufferOnWorker('0', 'rNamedBuffer', buf, 'utf8', false, true, function(){ // Buffer allocated and created ... // ... });
  */
 SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback) {
-    COM.buffer(workerID, name, buffer, encoding, mutable, chunky, callback);
+    COM.autoBuffer(workerID, name, buffer, encoding, mutable, chunky, callback);
 };
 
 /**
