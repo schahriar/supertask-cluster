@@ -318,11 +318,12 @@ SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(work
     COM.send(workerID, {
         type: "buffer",
         subtype: "get",
-        name: name
-    }, false, function(error) {
+        name: name,
+        storeAs: (partition)?(name + "P:" + partition.start + ":" + partition.end):null,
         partition: partition || {}
+    }, false, function(error, success, response) {
         if(error) return callback(error);
-        var BufferObject = STC_STORAGE_MAP.get(name);
+        var BufferObject = STC_STORAGE_MAP.get(response.stored_as || name);
         callback(error, BufferObject.get(), BufferObject.encoding);
     });
 };
