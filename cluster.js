@@ -330,8 +330,8 @@ SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(work
  * @returns {Object} reference - A reference that can be passed as an argument
  * to do function.
  */
-SuperTaskCluster.prototype.workerBufferReference = function STC_BUFFER_REF(name) {
-    return StorageObject.create('Buffer', name);
+SuperTaskCluster.prototype.workerBufferReference = function STC_BUFFER_REF(name, partition) {
+    return StorageObject.create('Buffer', name, partition);
 };
 
 /**
