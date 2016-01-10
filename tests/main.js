@@ -161,4 +161,28 @@ describe("Worker Allocation Test Suite", function(){
             done();
         });
     });
+    it('should slice Buffer on the fly', function(done) {
+        cluster.addShared('slicedBufferProcessor', function(buf, callback) {
+            callback(null, buf.length, buf.toString());
+        }, function(error, task) {
+            task.permission(Cluster.ST_MINIMAL);
+            task.distribute(function(){
+                task.call(cluster.workerBufferReference('testLarge', { start: 10, end: 14 }), function(error, bl, rstr){
+                    expect(bl).to.equal(4);
+                    expect(rstr).to.equal('****');
+                    done(error);
+                });
+            });
+        });
+    });
+    it('should get sliced Buffer on the fly', function(done) {
+        this.timeout(10000);
+        var IDs = Object.keys(cluster.getWorkers());
+        cluster.getBufferFromWorker(IDs[IDs.length - 1], 'testLarge', { start: 10, end: 15 }, function(error, buf) {
+            expect(error).to.equal(null);
+            expect(buf.length).to.be.equal(5);
+            expect(buf.toString()).to.be.equal('*****');
+            done();
+        });
+    });
 });
