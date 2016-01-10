@@ -296,6 +296,17 @@ SuperTaskCluster.prototype.killWorker = function STC_KILL_WORKER(workerID, grace
  * which is a good idea.
  * @param {Function} [callback] - Called after Buffer and its chunks have been
  * fully uploaded to the Worker.
+ * 
+ * @example
+ * ...
+ * var TaskCluster = new SuperTaskCluster();
+ * ...
+ * // Allocate a 20kb buffer
+ * var buf = new Buffer(20000);
+ * // Fill it with 20 thousand stars (asterisk)
+ * buf.fill('*');
+ * // Upload to Worker 0 and make it immutable (unchangable)
+ * TaskCluster.createBufferOnWorker('0', 'rNamedBuffer', buf, 'utf8', false, true, function(){ // Buffer allocated and created ... // ... });
  */
 SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(workerID, name, buffer, encoding, mutable, chunky, callback) {
     COM.buffer(workerID, name, buffer, encoding, mutable, chunky, callback);
@@ -306,8 +317,18 @@ SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(wor
  *
  * @param {Number} workerID - ID of the Worker
  * @param {String} name - Buffer name
+ * @param {Object} [partition] - An optional partition object. @see example
  * @param {Function} [callback] - Called after Buffer and its chunks have been
  * fully downloaded. Buffer will be passed as the second argument followed by encoding
+ * 
+ * @example
+ * ...
+ * var TaskCluster = new SuperTaskCluster();
+ * ...
+ * // Either
+ * TaskCluster.getBufferFromWorker('0', 'rNamedBuffer', function(error, buff) { ... })
+ * // Or a sliced version of the buffer
+ * TaskCluster.getBufferFromWorker('0', 'rNamedBuffer', { start: 10, end: 1000 }, function(error, buff) { ... })
  */
 SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(workerID, name, partition, callback) {
     // Parameter override
@@ -334,8 +355,23 @@ SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(work
  *
  * @param {String} name - Name of the Buffer uploaded to the Worker
  * using {@link SuperTaskCluster#createBufferOnWorker}
+ * @param {Object} [partition] - An optional partition object. @see example
  * @returns {Object} reference - A reference that can be passed as an argument
  * to do function.
+ * 
+ * @example
+ * ...
+ * var TaskCluster = new SuperTaskCluster();
+ * ...
+ * // Read Buffer name starting from `start` to `end` (similar to Buffer#slice)
+ * // We use the same buffer described in the #createBufferOnWorker example
+ * var argRef = TaskCluster.workerBufferReference('rNamedBuffer', { start: 100, end: 200 });
+ * TaskCluster.do('someTask', argRef, function(buffer, callback){ callback(null, buffer.toString('utf8')); }, function(error, result) {
+ *  // Our sometask is done and returned the buffer
+ *  // Instead of 20k stars we'll get 10 because of the partitioning (110 - 100 = 10)
+ *  console.log(result);
+ *  // Output: **********
+ * });
  */
 SuperTaskCluster.prototype.workerBufferReference = function STC_BUFFER_REF(name, partition) {
     return StorageObject.create('Buffer', name, partition);
