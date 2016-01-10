@@ -309,12 +309,18 @@ SuperTaskCluster.prototype.createBufferOnWorker = function STC_CREATE_BUFFER(wor
  * @param {Function} [callback] - Called after Buffer and its chunks have been
  * fully downloaded. Buffer will be passed as the second argument followed by encoding
  */
-SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(workerID, name, callback) {
+SuperTaskCluster.prototype.getBufferFromWorker = function STC_CREATE_BUFFER(workerID, name, partition, callback) {
+    // Parameter override
+    if(typeof partition === 'function') {
+        callback = partition;
+        partition = null;
+    }
     COM.send(workerID, {
         type: "buffer",
         subtype: "get",
         name: name
     }, false, function(error) {
+        partition: partition || {}
         if(error) return callback(error);
         var BufferObject = STC_STORAGE_MAP.get(name);
         callback(error, BufferObject.get(), BufferObject.encoding);
